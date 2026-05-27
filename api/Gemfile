@@ -36,6 +36,9 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Generate fake names, emails, lorem ipsum for db/seeds.rb
+  gem "faker", "~> 3.4"
 end
 
 
