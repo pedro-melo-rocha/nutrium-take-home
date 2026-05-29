@@ -7,7 +7,10 @@ module Api
       # The response includes the resolved `location` so the client can
       # show "Showing results for Braga" when the default was applied.
       def index
-        search = Nutritionists::Search.new(
+        # Force top-level Nutritionists module — Api::V1::Nutritionists exists
+        # as a controller namespace (for nested appointment_requests) and
+        # would otherwise shadow the query object lookup.
+        search = ::Nutritionists::Search.new(
           q: params[:q],
           location: params[:location]
         )
@@ -15,7 +18,8 @@ module Api
         render json: {
           location: search.location,
           query: search.q,
-          results: search.results
+          results: search.results,
+          suggestion: search.suggestion
         }
       end
     end

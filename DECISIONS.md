@@ -18,3 +18,10 @@ Why this app looks the way it does. One-liner per choice; deeper rationale in co
 ## Concurrency & integrity
 - **DB-level invariants over app-level** — Postgres partial unique (one pending per email) + GiST exclusion (no overlapping accepted) make races impossible regardless of app logic.
 - **Transactional invalidation on new pending submit** — app marks prior pendings `canceled` before insert; unique index is the race-safety net.
+- **Service objects own transactions** — `AppointmentRequests::{Create,Accept,Reject}` wrap each state change. Result objects (`success`/`record`/`error_code`) let controllers map to HTTP statuses without rescue forests.
+
+## API
+- **Search: blank location → Braga; non-blank honored as-typed** — empty results are returned with a `suggestion: { location, results_count }` payload so the frontend can offer a graceful fallback ("No hits in Porto. Show 6 in Braga?"). Suggestion strategy is pluggable — today hardcoded Braga, future could be geo-IP / distance / popularity. Avoids silent surprise where user searched Porto and got Braga back.
+- **`PATCH` body uses `decision` (not `action`)** — `params[:action]` is reserved by Rails for the controller-action name.
+- **Lookup endpoint exists** — `GET /appointment_requests/lookup?guest_email=` returns the guest's active (pending OR accepted) request so the frontend can show a confirmation dialog before superseding. No auth means anyone with an email can probe; acceptable for take-home scope (spec is no-auth).
+- **Only pending is auto-superseded on new submit** — accepted appointments survive. If a guest wants to cancel an accepted appointment to book a new slot, the frontend dialog can explain; no separate "cancel my accepted" endpoint shipped (out of spec scope).

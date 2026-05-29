@@ -24,11 +24,13 @@ RSpec.describe Nutritionists::Search do
       expect(described_class.new(location: "   ").location).to eq("Braga")
     end
 
-    it "falls back to Braga when location has no matching services" do
-      expect(described_class.new(location: "Atlantis").location).to eq("Braga")
+    it "honors a non-blank location AS-TYPED even when it has no services (P2-FIX)" do
+      # Old behavior silently fell back to Braga. New behavior respects user
+      # intent and surfaces a suggestion instead.
+      expect(described_class.new(location: "Atlantis").location).to eq("Atlantis")
     end
 
-    it "is case-insensitive on a valid location" do
+    it "preserves casing on the resolved location" do
       expect(described_class.new(location: "porto").location).to eq("porto")
     end
 
@@ -97,6 +99,47 @@ RSpec.describe Nutritionists::Search do
       search = described_class.new(q: "silva", location: nil)
       expect(search.location).to eq("Braga")
       expect(search.q).to eq("silva")
+    end
+  end
+
+  describe "#suggestion (P2-FIX)" do
+    it "is nil when results are present" do
+      search = described_class.new(location: "Braga")
+      expect(search.results).not_to be_empty
+      expect(search.suggestion).to be_nil
+    end
+
+    it "is nil when input was blank (default Braga already applied)" do
+      # No point suggesting Braga when the user got Braga by default.
+      search = described_class.new(location: nil)
+      expect(search.suggestion).to be_nil
+    end
+
+    it "is nil when input WAS Braga (the default location) — even when empty" do
+      search = described_class.new(q: "kettlebell", location: "Braga")
+      expect(search.results).to be_empty
+      expect(search.suggestion).to be_nil
+    end
+
+    it "returns {location, results_count} when a non-Braga location yields no hits but Braga has matching data" do
+      search = described_class.new(location: "Atlantis")
+      expect(search.results).to be_empty
+      expect(search.suggestion).to eq(location: "Braga", results_count: 2)
+    end
+
+    it "respects q when computing fallback count" do
+      # Searching `silva` in Atlantis: empty. Suggestion should count only
+      # Braga results that ALSO match q — Ana Silva matches, Catarina Lopes
+      # does not.
+      search = described_class.new(q: "silva", location: "Atlantis")
+      expect(search.results).to be_empty
+      expect(search.suggestion).to eq(location: "Braga", results_count: 1)
+    end
+
+    it "is nil when Braga itself has zero matches for the query" do
+      search = described_class.new(q: "kettlebell", location: "Atlantis")
+      expect(search.results).to be_empty
+      expect(search.suggestion).to be_nil
     end
   end
 
