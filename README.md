@@ -62,9 +62,9 @@ curl 'http://localhost:3000/api/v1/nutritionists'
 curl 'http://localhost:3000/api/v1/nutritionists?location=Porto&q=sport'
 ```
 
-Response includes a `suggestion: { location, results_count }` payload when the
-typed location returned zero hits but the default would have matched — drives
-the frontend "No hits in Porto. Show 6 in Braga?" prompt.
+A blank or invalid location falls back to `Braga` ("invalid" = yields zero
+results). The response reports the resolved `location`, so the frontend can
+label results ("Showing results for Braga").
 
 ### Create an appointment request
 
@@ -135,7 +135,7 @@ curl 'http://localhost:3000/api/v1/nutritionists/1/appointment_requests?status=p
 ## Notes / Decisions
 
 - API-only Rails + standalone Vite SPA chosen over Rails monolith for cleaner separation and modern frontend DX.
-- Default search location is `Braga` when none provided.
+- Search location falls back to `Braga` when blank or invalid (zero-hit).
 - Guest identity is email-only.
 - Nutritionist views are unauthenticated.
 

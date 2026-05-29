@@ -29,21 +29,19 @@ RSpec.describe "GET /api/v1/nutritionists", type: :request do
     expect(json["results"].map { |r| r["name"] }).to contain_exactly("Bruno Costa")
   end
 
-  it "honors unknown location as-typed and returns empty + suggestion (P2-FIX)" do
+  it "falls back to Braga when an invalid location is given" do
     get "/api/v1/nutritionists", params: { location: "Atlantis" }
 
     json = response.parsed_body
-    expect(json["location"]).to eq("Atlantis")
-    expect(json["results"]).to eq([])
-    expect(json["suggestion"]).to eq("location" => "Braga", "results_count" => 1)
+    expect(json["location"]).to eq("Braga")
+    expect(json["results"].map { |r| r["name"] }).to contain_exactly("Ana Silva")
   end
 
-  it "omits suggestion when results are present" do
+  it "does not include a suggestion key" do
     get "/api/v1/nutritionists", params: { location: "Porto" }
 
     json = response.parsed_body
-    expect(json["results"]).not_to be_empty
-    expect(json["suggestion"]).to be_nil
+    expect(json).not_to have_key("suggestion")
   end
 
   it "applies q within the resolved location" do

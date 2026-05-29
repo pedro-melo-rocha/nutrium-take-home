@@ -13,8 +13,7 @@ module Api
         render json: {
           location: search.location,
           query: search.q,
-          results: search.results,
-          suggestion: search.suggestion
+          results: search.results
         }
       end
     end

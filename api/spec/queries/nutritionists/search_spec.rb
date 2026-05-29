@@ -24,13 +24,11 @@ RSpec.describe Nutritionists::Search do
       expect(described_class.new(location: "   ").location).to eq("Braga")
     end
 
-    it "honors a non-blank location AS-TYPED even when it has no services (P2-FIX)" do
-      # Old behavior silently fell back to Braga. New behavior respects user
-      # intent and surfaces a suggestion instead.
-      expect(described_class.new(location: "Atlantis").location).to eq("Atlantis")
+    it "falls back to Braga when the location is invalid (yields zero results)" do
+      expect(described_class.new(location: "Atlantis").location).to eq("Braga")
     end
 
-    it "preserves casing on the resolved location" do
+    it "preserves casing on a location that has hits" do
       expect(described_class.new(location: "porto").location).to eq("porto")
     end
 
@@ -78,7 +76,7 @@ RSpec.describe Nutritionists::Search do
       expect(results.map { |r| r[:name] }).to contain_exactly("Catarina Lopes")
     end
 
-    it "returns empty when no nutritionist at the location matches q" do
+    it "returns empty when no nutritionist at the (default) location matches q" do
       results = described_class.new(q: "kettlebell", location: "Braga").results
       expect(results).to be_empty
     end
@@ -102,44 +100,34 @@ RSpec.describe Nutritionists::Search do
     end
   end
 
-  describe "#suggestion (P2-FIX)" do
-    it "is nil when results are present" do
-      search = described_class.new(location: "Braga")
-      expect(search.results).not_to be_empty
-      expect(search.suggestion).to be_nil
-    end
-
-    it "is nil when input was blank (default Braga already applied)" do
-      # No point suggesting Braga when the user got Braga by default.
-      search = described_class.new(location: nil)
-      expect(search.suggestion).to be_nil
-    end
-
-    it "is nil when input WAS Braga (the default location) — even when empty" do
-      search = described_class.new(q: "kettlebell", location: "Braga")
-      expect(search.results).to be_empty
-      expect(search.suggestion).to be_nil
-    end
-
-    it "returns {location, results_count} when a non-Braga location yields no hits but Braga has matching data" do
+  describe "invalid-location fallback to Braga" do
+    it "returns Braga results when the typed location has no services" do
       search = described_class.new(location: "Atlantis")
-      expect(search.results).to be_empty
-      expect(search.suggestion).to eq(location: "Braga", results_count: 2)
+
+      expect(search.location).to eq("Braga")
+      expect(search.results.map { |r| r[:name] }).to contain_exactly("Ana Silva", "Catarina Lopes")
     end
 
-    it "respects q when computing fallback count" do
-      # Searching `silva` in Atlantis: empty. Suggestion should count only
-      # Braga results that ALSO match q — Ana Silva matches, Catarina Lopes
-      # does not.
-      search = described_class.new(q: "silva", location: "Atlantis")
-      expect(search.results).to be_empty
-      expect(search.suggestion).to eq(location: "Braga", results_count: 1)
+    it "applies q against Braga when falling back" do
+      # "weight" matches only Catarina, who is in Braga.
+      search = described_class.new(q: "weight", location: "Atlantis")
+
+      expect(search.location).to eq("Braga")
+      expect(search.results.map { |r| r[:name] }).to contain_exactly("Catarina Lopes")
     end
 
-    it "is nil when Braga itself has zero matches for the query" do
+    it "returns empty (still resolved to Braga) when Braga also has no match for q" do
       search = described_class.new(q: "kettlebell", location: "Atlantis")
+
+      expect(search.location).to eq("Braga")
       expect(search.results).to be_empty
-      expect(search.suggestion).to be_nil
+    end
+
+    it "does not fall back when the requested location has hits" do
+      search = described_class.new(location: "Porto")
+
+      expect(search.location).to eq("Porto")
+      expect(search.results.map { |r| r[:name] }).to contain_exactly("Bruno Costa")
     end
   end
 
