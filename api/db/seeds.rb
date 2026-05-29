@@ -1,11 +1,6 @@
-# Idempotent demo data.
-#
-# Reviewer runs `bin/rails db:seed` and immediately gets a populated search
-# page. Re-running this script does NOT duplicate rows; lookup is by a stable
-# natural key (email for nutritionists, [nutritionist, name] for services).
-#
-# Faker is used for variety (bio-like names) but the *list* of seed
-# nutritionists is deterministic — every reviewer sees the same dataset.
+# Idempotent demo data. Re-running does not duplicate rows: natural keys are
+# email (Nutritionist) and [nutritionist, name] (Service). Roster is
+# deterministic so every reviewer sees the same dataset.
 
 require "faker"
 
@@ -13,7 +8,7 @@ Faker::Config.locale = :"pt-PT"
 
 puts "Seeding…"
 
-# Catalog of services. Each nutritionist gets a random subset (2..4).
+# Each nutritionist gets a deterministic 2..4 subset (rotated by index).
 SERVICE_CATALOG = [
   { name: "Initial Consultation",   price_cents: 5500, duration_minutes: 60 },
   { name: "Follow-up Consultation", price_cents: 3500, duration_minutes: 30 },
@@ -27,10 +22,9 @@ SERVICE_CATALOG = [
   { name: "Body Composition Eval",  price_cents: 4000, duration_minutes: 30 }
 ].freeze
 
-LOCATIONS = ["Braga", "Porto", "Lisboa", "Guimarães", "Coimbra", "Online"].freeze
+LOCATIONS = [ "Braga", "Porto", "Lisboa", "Guimarães", "Coimbra", "Online" ].freeze
 
-# Deterministic nutritionist roster. Email is the idempotency key.
-# Locations are biased toward Braga (spec default for guest search).
+# Roster biased toward Braga so the spec-default search returns results.
 NUTRITIONISTS = [
   { name: "Ana Margarida Silva",    email: "ana.silva@nutri.example",       location: "Braga"     },
   { name: "João Pedro Ferreira",    email: "joao.ferreira@nutri.example",   location: "Braga"     },
@@ -46,28 +40,21 @@ NUTRITIONISTS = [
   { name: "Luís Carlos Pereira",    email: "luis.pereira@nutri.example",    location: "Coimbra"   }
 ].freeze
 
-# 1. Nutritionists --------------------------------------------------------
 nutritionists = NUTRITIONISTS.map do |attrs|
   Nutritionist.find_or_create_by!(email: attrs[:email]) do |n|
     n.name = attrs[:name]
   end
 end
 
-# 2. Services -------------------------------------------------------------
-# Each nutritionist gets a deterministic subset of the catalog (based on a
-# hash of their email) so re-runs produce the same services. One service is
-# always at the nutritionist's home location; a second is "Online" so the
-# online filter has hits.
 nutritionists.each_with_index do |nutri, idx|
   home = NUTRITIONISTS[idx][:location]
 
-  # Stable pick: rotate the catalog by idx, take 2..4 entries.
   count = 2 + (idx % 3)
   picks = SERVICE_CATALOG.rotate(idx).first(count)
 
   picks.each_with_index do |svc_attrs, svc_idx|
-    # First service at home location, second at Online (when count >= 2),
-    # remainder rotate through other locations for variety.
+    # Slot 0: home location. Slot 1: Online (so the online filter has hits).
+    # Remainder: rotate through LOCATIONS for variety.
     location =
       case svc_idx
       when 0 then home
@@ -82,9 +69,7 @@ nutritionists.each_with_index do |nutri, idx|
   end
 end
 
-# 3. Sample pending appointment requests ----------------------------------
-# A handful so the nutritionist UI (P6) renders non-empty out of the box.
-# Idempotency key: (nutritionist, guest_email, starts_at).
+# Seed pending requests so the nutritionist queue renders non-empty.
 SAMPLE_REQUESTS = [
   { nutri_email: "ana.silva@nutri.example",   guest_name: "Sara Pinto",     guest_email: "sara.pinto@example.com",   days_from_now: 2, hour: 10 },
   { nutri_email: "ana.silva@nutri.example",   guest_name: "Hugo Martins",   guest_email: "hugo.martins@example.com", days_from_now: 3, hour: 14 },
@@ -94,7 +79,7 @@ SAMPLE_REQUESTS = [
 SAMPLE_REQUESTS.each do |req|
   nutri = Nutritionist.find_by!(email: req[:nutri_email])
   service = nutri.services.first
-  next unless service # skip if a nutri has no services (shouldn't happen)
+  next unless service
 
   starts_at = (Date.current + req[:days_from_now]).to_time.change(hour: req[:hour])
   existing = AppointmentRequest.find_by(
@@ -110,11 +95,9 @@ SAMPLE_REQUESTS.each do |req|
     guest_name: req[:guest_name],
     guest_email: req[:guest_email],
     starts_at: starts_at
-    # ends_at + status auto-set by model callbacks / DB default
   )
 end
 
-# 4. Summary --------------------------------------------------------------
 puts "  Nutritionists:        #{Nutritionist.count}"
 puts "  Services:             #{Service.count}"
 puts "    Braga-located:      #{Service.where(location: 'Braga').count}"

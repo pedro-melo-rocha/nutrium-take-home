@@ -41,14 +41,14 @@ RSpec.describe "Api::V1::AppointmentRequests", type: :request do
     it "returns 422 on validation failure (past starts_at)" do
       post_create(starts_at: 1.day.ago.iso8601)
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["error"]["code"]).to eq("validation_failed")
     end
 
     it "returns 422 on invalid email" do
       post_create(guest_email: "not-an-email")
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["error"]["code"]).to eq("validation_failed")
     end
   end
@@ -76,7 +76,7 @@ RSpec.describe "Api::V1::AppointmentRequests", type: :request do
     it "returns 422 when decision is missing" do
       patch "/api/v1/appointment_requests/#{req.id}", params: {}, as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["error"]["code"]).to eq("missing_decision")
     end
 
@@ -108,7 +108,7 @@ RSpec.describe "Api::V1::AppointmentRequests", type: :request do
     it "returns 422 when guest_email missing" do
       get "/api/v1/appointment_requests/lookup"
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["error"]["code"]).to eq("missing_guest_email")
     end
 

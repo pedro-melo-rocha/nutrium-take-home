@@ -48,9 +48,95 @@ cd api && bundle exec rspec
 cd web && npm test
 ```
 
+## API endpoints
+
+All endpoints under `/api/v1/`. JSON in, JSON out. No auth.
+
+### Search nutritionists
+
+```bash
+# Default location (blank → "Braga")
+curl 'http://localhost:3000/api/v1/nutritionists'
+
+# Filter by location + free-text query (name OR service name)
+curl 'http://localhost:3000/api/v1/nutritionists?location=Porto&q=sport'
+```
+
+Response includes a `suggestion: { location, results_count }` payload when the
+typed location returned zero hits but the default would have matched — drives
+the frontend "No hits in Porto. Show 6 in Braga?" prompt.
+
+### Create an appointment request
+
+```bash
+curl -X POST 'http://localhost:3000/api/v1/appointment_requests' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "appointment_request": {
+      "service_id": 1,
+      "guest_name": "Sara Pinto",
+      "guest_email": "sara@example.com",
+      "starts_at": "2026-06-02T10:00:00Z"
+    }
+  }'
+```
+
+Returns `201 Created` with the persisted record. Any prior `pending` request
+from the same email is auto-canceled (one-pending-per-guest invariant; the
+partial unique index is the race guard).
+
+Errors:
+- `422 validation_failed` — model validation error
+- `409 concurrent_submission` — race lost on the partial unique index
+
+### Lookup active request (frontend pre-check)
+
+```bash
+curl 'http://localhost:3000/api/v1/appointment_requests/lookup?guest_email=sara@example.com'
+```
+
+Returns `{ active: <request> | null }`. Lets the SPA show a confirmation
+dialog before superseding an existing pending/accepted request.
+
+### Accept / reject (nutritionist queue)
+
+```bash
+curl -X PATCH 'http://localhost:3000/api/v1/appointment_requests/42' \
+  -H 'Content-Type: application/json' \
+  -d '{ "decision": "accept" }'
+
+curl -X PATCH 'http://localhost:3000/api/v1/appointment_requests/42' \
+  -H 'Content-Type: application/json' \
+  -d '{ "decision": "reject" }'
+```
+
+`decision` (not `action` — Rails reserves `params[:action]`).
+
+On accept, all other pending requests for the same nutritionist whose time
+range overlaps are auto-canceled. The Postgres GiST exclusion constraint
+`no_overlapping_accepted` is the race guard against double-booking.
+
+Errors:
+- `409 overlap_conflict` — slot already taken by another accepted request
+- `409 invalid_state` — request is not in `pending`
+- `422 validation_failed`
+
+Mails enqueue *after* the transaction commits (never inside it). In dev,
+`letter_opener` pops the email in a browser tab.
+
+### Nutritionist queue
+
+```bash
+curl 'http://localhost:3000/api/v1/nutritionists/1/appointment_requests?status=pending'
+```
+
+`status` ∈ `pending | accepted | rejected | canceled`. Defaults to `pending`.
+
 ## Notes / Decisions
 
 - API-only Rails + standalone Vite SPA chosen over Rails monolith for cleaner separation and modern frontend DX.
-- Default search location is `Braga` when none provided (per spec).
-- Guest identity is email-only (no auth).
-- Nutritionist views are unauthenticated per spec.
+- Default search location is `Braga` when none provided.
+- Guest identity is email-only.
+- Nutritionist views are unauthenticated.
+
+See `DECISIONS.md` for the full architecture log.

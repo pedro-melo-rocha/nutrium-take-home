@@ -1,36 +1,22 @@
 module Nutritionists
-  # Search query object for the public nutritionist listing.
+  # Inputs: `q` matches Nutritionist#name OR Service#name (case-insensitive);
+  # `location` is case-insensitive equality on Service#location.
   #
-  # Inputs:
-  #   q        — free-text; matches Nutritionist#name OR Service#name (case-insensitive)
-  #   location — service location filter (case-insensitive equality)
-  #
-  # Spec behavior (P2-FIX, 2026-05-29):
-  #   - When `location` is blank, default to "Braga" (spec rule).
-  #   - When `location` is non-blank, honor it AS-TYPED — even if it returns
-  #     zero results. Previous behavior silently fell back to Braga, which
-  #     surprised users searching "Porto" and seeing Braga results.
-  #   - When results are empty AND a fallback location has data, expose the
-  #     fallback in #suggestion so the UI can render "No hits in Porto.
-  #     Show 6 in Braga?" — discoverability without silent surprise.
-  #   - Name matches alone are NOT enough: a nutritionist whose only services
-  #     are in Porto should not appear in a Braga search.
-  #   - Embedded services are filtered to the chosen location.
-  #
-  # The suggestion strategy is intentionally pluggable. Today: hardcoded
-  # `DEFAULT_LOCATION`. Future: swap for geo-IP lookup, distance ranking,
-  # or popularity heuristic. Same response shape.
-  #
-  # Returns array of hashes ready for JSON rendering. Keeps controller skinny.
+  # Spec rules:
+  #   - Blank `location` → default to "Braga".
+  #   - Non-blank `location` is honored AS-TYPED (don't silently fall back).
+  #   - Empty results + fallback has hits → expose `#suggestion` so the UI
+  #     can prompt "No hits in Porto. Show 6 in Braga?" without surprise.
+  #   - Name match alone is not enough: a nutritionist with services only in
+  #     Porto must NOT appear in a Braga search.
+  #   - Embedded services in the response are filtered to the chosen location.
   class Search
     DEFAULT_LOCATION = "Braga".freeze
 
     attr_reader :q, :location
 
-    # `location_was_blank` tells callers whether the resolved location came
-    # from default fallback (blank input) or from the user's own input.
-    # The controller uses this to decide whether suggestion is appropriate
-    # (no point suggesting Braga when results are 0 in Braga itself).
+    # True when the resolved location came from the default fallback rather
+    # than user input — used to suppress meaningless self-suggestions.
     attr_reader :location_was_blank
 
     def initialize(q: nil, location: nil)
@@ -44,9 +30,8 @@ module Nutritionists
       @results ||= compute_results
     end
 
-    # When the current search returns zero results AND the user typed a
-    # non-default location, surface a fallback that DOES have hits.
-    # Returns nil if no useful suggestion can be made.
+    # Returns `{ location:, results_count: }` when the current search is empty
+    # AND the user typed a non-default location that has data elsewhere, else nil.
     def suggestion
       return nil if results.any?
       return nil if location_was_blank
@@ -89,9 +74,9 @@ module Nutritionists
       )
     end
 
-    # Count of distinct nutritionists at the fallback location that would
-    # match the same `q` (so the suggestion is meaningful for the user's
-    # search, not just "Braga has data in general").
+    # Count distinct nutritionists at `fallback_location` matching the SAME
+    # `q` — so the suggestion is meaningful for the user's search, not just
+    # "Braga has data in general".
     def fallback_count_for(fallback_location)
       scope = Service.where("LOWER(location) = LOWER(?)", fallback_location)
       if q.present?

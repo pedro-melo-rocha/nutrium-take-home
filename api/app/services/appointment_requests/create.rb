@@ -1,29 +1,13 @@
 module AppointmentRequests
-  # Create a new pending appointment request for a guest.
+  # Create new pending appointment request.
   #
-  # Spec rule: "A guest can only have one pending appointment request — submitting
-  # a new pending request must invalidate the existing ones from the same guest."
+  # Spec rule: one pending per guest. We pre-cancel prior pendings inside the
+  # txn; the partial unique index `index_appointment_requests_unique_pending_per_guest`
+  # is the race-safe net (concurrent submits → RecordNotUnique → :concurrent_submission).
+  # Accepted requests are NOT touched — the frontend dialog handles that UX.
   #
-  # Behavior:
-  #   1. Inside one transaction:
-  #        a. Mark any existing PENDING requests from this guest_email as :canceled.
-  #           (Accepted ones are NOT touched — those are confirmed bookings; the
-  #            frontend confirmation dialog handles that UX layer.)
-  #        b. Insert the new pending request.
-  #   2. After the transaction commits, return the persisted record.
-  #
-  # Race safety:
-  #   - Two concurrent submits from the same email race for the partial unique
-  #     index `index_appointment_requests_unique_pending_per_guest`. Postgres
-  #     will reject the loser with ActiveRecord::RecordNotUnique. The caller
-  #     can treat that as a retry signal.
-  #
-  # Mailer enqueue:
-  #   - No "submitted" confirmation mail. Spec only requires notifying the guest
-  #     on the nutritionist's decision (accept/reject). Adding a submit-time
-  #     confirmation = scope creep + extra noise in the guest's inbox.
-  #   - The after_commit_hook stub is kept so the contract matches Accept and
-  #     Reject, and so a future "submit confirmation" feature plugs in cleanly.
+  # No submit-confirmation mail (spec only requires accept/reject notifications).
+  # `after_commit_hook` kept as no-op so the contract matches Accept/Reject.
   class Create
     Result = AppointmentRequests::Result
 
@@ -54,7 +38,7 @@ module AppointmentRequests
       email.to_s.strip.downcase.presence
     end
 
-    # Intentional no-op: no submit-confirmation mail (out of spec, see comments above).
+    # No-op: no submit-confirmation mail. Kept so a future feature plugs in cleanly.
     def after_commit_hook(_record); end
   end
 end

@@ -13,7 +13,7 @@ class CreateAppointmentRequests < ActiveRecord::Migration[7.2]
     end
 
     add_index :appointment_requests, :guest_email
-    add_index :appointment_requests, [:nutritionist_id, :status]
+    add_index :appointment_requests, [ :nutritionist_id, :status ]
     add_check_constraint :appointment_requests,
       "status IN ('pending', 'accepted', 'rejected', 'canceled')",
       name: "status_in_enum"

@@ -1,12 +1,11 @@
 module Api
   module V1
     module Nutritionists
-      # Nested under /api/v1/nutritionists/:nutritionist_id/appointment_requests
-      # The nutritionist queue page (P6) fetches this.
+      # GET /api/v1/nutritionists/:nutritionist_id/appointment_requests?status=
+      # Backs the nutritionist queue page.
       class AppointmentRequestsController < ApplicationController
         VALID_STATUSES = %w[pending accepted rejected canceled].freeze
 
-        # GET /api/v1/nutritionists/:nutritionist_id/appointment_requests?status=pending
         def index
           nutritionist = ::Nutritionist.find(params[:nutritionist_id])
 
@@ -21,7 +20,7 @@ module Api
           else
             return render(
               json: { error: { code: "invalid_status", message: "status must be one of #{VALID_STATUSES.join(', ')}" } },
-              status: :unprocessable_entity
+              status: :unprocessable_content
             )
           end
 

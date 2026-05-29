@@ -51,7 +51,7 @@ RSpec.describe Nutritionists::Search do
       ana_result = results.find { |r| r[:name] == "Ana Silva" }
 
       service_names = ana_result[:services].map { |s| s[:name] }
-      expect(service_names).to eq(["Initial Consultation"]) # NOT Online Follow-up
+      expect(service_names).to eq([ "Initial Consultation" ])
     end
 
     it "applies the Braga default when location is blank" do
@@ -92,7 +92,7 @@ RSpec.describe Nutritionists::Search do
 
     it "returns ordered by nutritionist name" do
       results = described_class.new(location: "Braga").results
-      expect(results.map { |r| r[:name] }).to eq(["Ana Silva", "Catarina Lopes"])
+      expect(results.map { |r| r[:name] }).to eq([ "Ana Silva", "Catarina Lopes" ])
     end
 
     it "returns the resolved location and query in the search object" do

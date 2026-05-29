@@ -2,7 +2,6 @@ module Api
   module V1
     class AppointmentRequestsController < ApplicationController
       # POST /api/v1/appointment_requests
-      #
       # Body: { appointment_request: { service_id, guest_name, guest_email, starts_at } }
       def create
         result = AppointmentRequests::Create.new.call(create_params.to_h.symbolize_keys)
@@ -15,10 +14,8 @@ module Api
       end
 
       # PATCH /api/v1/appointment_requests/:id
-      #
-      # Body: { decision: "accept" | "reject" }
-      # (key is `decision`, not `action`, because Rails reserves `params[:action]`
-      #  for the controller-action name)
+      # Body: { decision: "accept" | "reject" }.
+      # Key is `decision` (not `action`) — Rails reserves `params[:action]`.
       def update
         record = AppointmentRequest.find(params[:id])
 
@@ -29,7 +26,7 @@ module Api
           else
             return render(
               json: { error: { code: "missing_decision", message: "Body must include `decision`: \"accept\" or \"reject\"." } },
-              status: :unprocessable_entity
+              status: :unprocessable_content
             )
           end
 
@@ -42,25 +39,22 @@ module Api
       end
 
       # GET /api/v1/appointment_requests/lookup?guest_email=foo@bar.com
-      #
-      # Returns the guest's currently active (pending OR accepted) request if any.
-      # Used by the frontend to show a confirmation dialog before superseding.
-      #
-      # Security note: spec is no-auth, so this endpoint reveals whether a given
-      # email has an active request. Acceptable for take-home scope (the guest
-      # who typed their own email is who's looking). See DECISIONS P3-001.
+      # Returns the guest's active (pending OR accepted) request, if any.
+      # Security: no-auth spec — this endpoint reveals whether a given email
+      # has an active request. Acceptable for take-home scope; would need
+      # auth or rate-limiting in production.
       def lookup
         email = params[:guest_email].to_s.strip.downcase.presence
 
         if email.nil?
           return render(
             json: { error: { code: "missing_guest_email", message: "guest_email is required" } },
-            status: :unprocessable_entity
+            status: :unprocessable_content
           )
         end
 
         active = AppointmentRequest
-          .where(guest_email: email, status: [:pending, :accepted])
+          .where(guest_email: email, status: [ :pending, :accepted ])
           .order(created_at: :desc)
           .first
 
@@ -76,11 +70,11 @@ module Api
       def render_error(result)
         status =
           case result.error_code
-          when :validation_failed       then :unprocessable_entity
+          when :validation_failed       then :unprocessable_content
           when :overlap_conflict        then :conflict
           when :concurrent_submission   then :conflict
           when :invalid_state           then :conflict
-          else :unprocessable_entity
+          else :unprocessable_content
           end
 
         render json: { error: { code: result.error_code.to_s, message: result.error_message } }, status: status

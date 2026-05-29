@@ -23,11 +23,11 @@ RSpec.describe AppointmentRequestMailer, type: :mailer do
     let(:mail) { described_class.with(request: request_record).accepted }
 
     it "addresses the guest" do
-      expect(mail.to).to eq(["pedro@example.com"])
+      expect(mail.to).to eq([ "pedro@example.com" ])
     end
 
     it "uses the configured default From" do
-      expect(mail.from).to eq([ENV.fetch("MAIL_FROM", "no-reply@nutri-app.local")])
+      expect(mail.from).to eq([ ENV.fetch("MAIL_FROM", "no-reply@nutri-app.local") ])
     end
 
     it "has a precise subject" do
@@ -54,7 +54,7 @@ RSpec.describe AppointmentRequestMailer, type: :mailer do
     let(:mail) { described_class.with(request: request_record).rejected }
 
     it "addresses the guest" do
-      expect(mail.to).to eq(["pedro@example.com"])
+      expect(mail.to).to eq([ "pedro@example.com" ])
     end
 
     it "has a precise subject" do
@@ -74,7 +74,7 @@ RSpec.describe AppointmentRequestMailer, type: :mailer do
     let(:mail) { described_class.with(request: request_record).canceled_by_overlap }
 
     it "addresses the guest" do
-      expect(mail.to).to eq(["pedro@example.com"])
+      expect(mail.to).to eq([ "pedro@example.com" ])
     end
 
     it "uses a distinct subject from #rejected (slot conflict, not personal no)" do

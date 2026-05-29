@@ -1,11 +1,6 @@
 module AppointmentRequests
-  # Nutritionist rejects a pending appointment request.
-  #
-  # Behavior:
-  #   - Pending → :rejected
-  #   - Idempotent on already-rejected
-  #   - Errors on accepted (cannot un-accept via reject)
-  #   - Errors on canceled (terminal; guest already moved on)
+  # Nutritionist rejects a pending request. Idempotent on already-rejected;
+  # errors on accepted (cannot un-accept via reject) and canceled (terminal).
   class Reject
     Result = AppointmentRequests::Result
 
@@ -34,11 +29,8 @@ module AppointmentRequests
                  error_message: "Cannot reject a request in status '#{record.status}'.")
     end
 
-    # Post-commit pattern: enqueue lives OUTSIDE the txn block (caller calls
-    # this method only after `transaction { }` returns).
-    # Errors are swallowed + logged — a flaky mailer must not blow up an
-    # already-committed reject. ActiveJob retry policy on ApplicationJob
-    # covers actual transient delivery failures.
+    # Mailer errors swallowed + logged: a flaky mailer must not blow up an
+    # already-committed reject. ApplicationJob owns delivery retries.
     def after_commit_hook(record)
       AppointmentRequestMailer.with(request: record).rejected.deliver_later
     rescue StandardError => e

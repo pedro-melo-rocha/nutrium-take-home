@@ -45,7 +45,7 @@ RSpec.describe "Appointment notification enqueue", type: :service do
       }.to have_enqueued_mail(AppointmentRequestMailer, :canceled_by_overlap).twice
         .and have_enqueued_mail(AppointmentRequestMailer, :accepted).once
 
-      [overlap_a, overlap_b].each { |r| expect(r.reload).to be_canceled }
+      [ overlap_a, overlap_b ].each { |r| expect(r.reload).to be_canceled }
     end
 
     it "does NOT enqueue any mail when the accept fails with overlap_conflict" do

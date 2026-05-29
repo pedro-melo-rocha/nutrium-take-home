@@ -30,7 +30,7 @@ RSpec.describe "GET /api/v1/nutritionists/:id/appointment_requests", type: :requ
   it "returns 422 on invalid status" do
     get "/api/v1/nutritionists/#{nutritionist.id}/appointment_requests", params: { status: "garbage" }
 
-    expect(response).to have_http_status(:unprocessable_entity)
+    expect(response).to have_http_status(:unprocessable_content)
     expect(response.parsed_body["error"]["code"]).to eq("invalid_status")
   end
 

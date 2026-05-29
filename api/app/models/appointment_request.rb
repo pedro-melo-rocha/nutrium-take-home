@@ -1,11 +1,7 @@
 class AppointmentRequest < ApplicationRecord
-  # State machine:
-  #   pending  -> initial state on guest submit
-  #   accepted -> nutritionist accepted (terminal)
-  #   rejected -> nutritionist rejected (terminal)
-  #   canceled -> superseded by a newer pending from the same guest, OR
-  #               auto-killed because another request was accepted on an
-  #               overlapping slot. (See DECISIONS.md P1a-004.)
+  # `canceled` covers two cases: superseded by a newer pending from the same
+  # guest, OR auto-killed because another request was accepted on an
+  # overlapping slot. See DECISIONS.md (Data section).
   STATUSES = %w[pending accepted rejected canceled].freeze
   enum :status, STATUSES.index_with(&:itself), default: "pending"
 
@@ -29,33 +25,19 @@ class AppointmentRequest < ApplicationRecord
   before_validation :assign_nutritionist_from_service
   before_validation :assign_ends_at_from_service
 
-  scope :pending_for_email, ->(email) {
-    pending.where(guest_email: email&.downcase)
-  }
-
-  scope :pending_for_nutritionist, ->(nutritionist_id) {
-    pending.where(nutritionist_id: nutritionist_id)
-  }
-
-  scope :overlapping, ->(nutritionist_id, range_start, range_end) {
-    where(nutritionist_id: nutritionist_id)
-      .where("tstzrange(starts_at, ends_at) && tstzrange(?, ?)", range_start, range_end)
-  }
-
   private
 
   def normalize_guest_email
     self.guest_email = guest_email&.strip&.downcase.presence
   end
 
-  # Denormalized nutritionist_id is kept in sync with service.nutritionist_id.
-  # See DECISIONS.md P1a-003 for why this column exists.
+  # Denormalized for the GiST exclusion expression. Kept in sync from service.
   def assign_nutritionist_from_service
     self.nutritionist_id ||= service&.nutritionist_id
   end
 
-  # ends_at is a snapshot of service.duration_minutes at create time. It does
-  # NOT update if the service definition later changes. See DECISIONS.md P1a-002.
+  # `ends_at` is a snapshot at create-time. Service-duration changes must not
+  # shift past bookings — accepted appointments are contracts.
   def assign_ends_at_from_service
     return if ends_at.present?
     return if starts_at.blank? || service.blank? || service.duration_minutes.blank?

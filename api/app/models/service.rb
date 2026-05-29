@@ -10,8 +10,4 @@ class Service < ApplicationRecord
   validates :duration_minutes,
     presence: true,
     numericality: { only_integer: true, greater_than: 0 }
-
-  scope :in_location, ->(loc) {
-    where("LOWER(location) = LOWER(?)", loc) if loc.present?
-  }
 end

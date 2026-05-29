@@ -68,6 +68,6 @@ RSpec.describe "GET /api/v1/nutritionists", type: :request do
 
     json = response.parsed_body
     ana_result = json["results"].first
-    expect(ana_result["services"].map { |s| s["name"] }).to eq(["Initial Consultation"])
+    expect(ana_result["services"].map { |s| s["name"] }).to eq([ "Initial Consultation" ])
   end
 end
