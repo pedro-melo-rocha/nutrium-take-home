@@ -1,0 +1,11 @@
+<h2>Your appointment request was declined</h2>
+
+<p>Hi <%= @request.guest_name %>,</p>
+
+<p><strong><%= @nutritionist.name %></strong> was unable to accept your appointment
+request for <strong><%= @service.name %></strong> on
+<strong><%= @starts_at.strftime("%A, %B %d, %Y at %H:%M") %></strong>.</p>
+
+<p>You're welcome to book another slot anytime.</p>
+
+<p>— Nutri App</p>

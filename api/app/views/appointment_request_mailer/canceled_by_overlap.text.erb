@@ -1,0 +1,13 @@
+Hi <%= @request.guest_name %>,
+
+The slot you requested with <%= @nutritionist.name %> is no longer available —
+another appointment was accepted for an overlapping time, so your request
+was automatically canceled.
+
+Requested service:  <%= @service.name %>
+Requested time:     <%= @starts_at.strftime("%A, %B %d, %Y at %H:%M") %>
+
+This wasn't a rejection from <%= @nutritionist.name %> — feel free to book
+another time.
+
+— Nutri App

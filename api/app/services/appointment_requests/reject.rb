@@ -34,9 +34,15 @@ module AppointmentRequests
                  error_message: "Cannot reject a request in status '#{record.status}'.")
     end
 
-    # P4 wiring point.
-    def after_commit_hook(_record)
-      # no-op in P3
+    # Post-commit pattern: enqueue lives OUTSIDE the txn block (caller calls
+    # this method only after `transaction { }` returns).
+    # Errors are swallowed + logged — a flaky mailer must not blow up an
+    # already-committed reject. ActiveJob retry policy on ApplicationJob
+    # covers actual transient delivery failures.
+    def after_commit_hook(record)
+      AppointmentRequestMailer.with(request: record).rejected.deliver_later
+    rescue StandardError => e
+      Rails.logger.error("[AppointmentRequests::Reject] mail enqueue failed: #{e.class}: #{e.message}")
     end
   end
 end

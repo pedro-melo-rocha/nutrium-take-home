@@ -20,10 +20,17 @@ module AppointmentRequests
   #   - If the record is already accepted, return success without re-touching
   #     overlaps. Callers can retry safely.
   #
-  # Mailer enqueue (P4 hook):
-  #   - Enqueue an "accepted" mail for the guest of this request.
-  #   - Enqueue a "rejected/canceled" mail for the guests of each overlap
-  #     request that was just canceled.
+  # Mailer enqueue (post-commit pattern):
+  #   - Enqueues are issued AFTER `ActiveRecord::Base.transaction { }` commits,
+  #     never inside the block. Enqueueing inside the txn would risk sending
+  #     mail for work that gets rolled back.
+  #   - Two mails fire on success:
+  #       * `accepted` to the accepted request's guest
+  #       * `canceled_by_overlap` to each guest whose pending request was
+  #         auto-canceled by the overlap rule. Separate copy from `rejected`
+  #         so we can be precise: not a personal "no", a slot conflict.
+  #   - `deliver_later` enqueues an ActiveJob; retry/discard policy lives
+  #     on ApplicationJob.
   class Accept
     Result = AppointmentRequests::Result
 
@@ -74,9 +81,18 @@ module AppointmentRequests
                  error_message: "Cannot accept a request in status '#{record.status}'.")
     end
 
-    # P4 wiring point.
-    def after_commit_hook(_record, _canceled_overlaps)
-      # no-op in P3
+    # Issues both the acceptance mail and the overlap-cancellation mails.
+    # Errors here are intentionally swallowed and logged: a transient mailer
+    # outage must NOT roll back the (already-committed) state change. The
+    # retry policy on ApplicationJob covers actual delivery flakiness.
+    def after_commit_hook(record, canceled_overlaps)
+      AppointmentRequestMailer.with(request: record).accepted.deliver_later
+
+      canceled_overlaps.each do |canceled|
+        AppointmentRequestMailer.with(request: canceled).canceled_by_overlap.deliver_later
+      end
+    rescue StandardError => e
+      Rails.logger.error("[AppointmentRequests::Accept] mail enqueue failed: #{e.class}: #{e.message}")
     end
   end
 end

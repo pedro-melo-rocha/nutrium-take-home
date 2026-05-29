@@ -6,9 +6,6 @@
 #
 # Faker is used for variety (bio-like names) but the *list* of seed
 # nutritionists is deterministic — every reviewer sees the same dataset.
-# This matters because the JD highlights search testing; reproducible seed
-# data lets reviewers verify name + location + service queries against
-# known rows.
 
 require "faker"
 

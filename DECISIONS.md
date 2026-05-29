@@ -8,6 +8,13 @@ Why this app looks the way it does. One-liner per choice; deeper rationale in co
 ## Testing
 - **RSpec + FactoryBot backend; Vitest + RTL frontend** — standard senior stack for Rails + React.
 
+## Email
+- **letter_opener in dev (no real SMTP)** — Real send (Resend / SES / SMTP) is one line in `development.rb` if needed.
+- **Post-commit enqueue, not in-transaction** — service objects (`Accept`, `Reject`) call `deliver_later` AFTER `ActiveRecord::Base.transaction { }` returns. Enqueueing inside the txn would risk sending mail for work that gets rolled back.
+- **ActiveJob retry policy on `ApplicationJob`** — polynomial backoff on transient SMTP / network errors (5 attempts) and AR deadlocks (3 attempts); `discard_on ActiveJob::DeserializationError` so jobs for deleted records don't loop.
+- **`canceled_by_overlap` is a distinct mail from `rejected`** — auto-cancel from slot conflict is not a personal "no"; precise copy avoids misleading the guest.
+- **No "submitted" confirmation mail** — spec asks only for accept/reject notifications; skipping it cuts inbox noise + scope.
+
 ## Data
 - **No `Guest` table** — spec is email-only, no auth; `guest_name` + `guest_email` denormalized on each request.
 - **`ends_at` snapshot, not derived** — accepted appointments are contracts at booking time; service-duration changes must not shift past bookings.

@@ -1,0 +1,14 @@
+Hi <%= @request.guest_name %>,
+
+Good news — <%= @nutritionist.name %> accepted your appointment request.
+
+Service:  <%= @service.name %>
+Date:     <%= @starts_at.strftime("%A, %B %d, %Y") %>
+Time:     <%= @starts_at.strftime("%H:%M") %> (Europe/Lisbon)
+Duration: <%= @service.duration_minutes %> minutes
+Location: <%= @service.location %>
+Price:    €<%= format("%.2f", @service.price_cents / 100.0) %>
+
+Please be on time. If you need to cancel, reply to this email.
+
+— Nutri App

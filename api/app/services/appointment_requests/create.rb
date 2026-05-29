@@ -19,10 +19,11 @@ module AppointmentRequests
   #     can treat that as a retry signal.
   #
   # Mailer enqueue:
-  #   - P3 leaves a hook (#after_commit_hook) where P4 will plug in
-  #     `AppointmentRequestMailer.with(...).submitted.deliver_later`. Enqueueing
-  #     INSIDE the transaction is a well-known footgun (mail goes out for work
-  #     that gets rolled back), so the hook lives outside the txn block.
+  #   - No "submitted" confirmation mail. Spec only requires notifying the guest
+  #     on the nutritionist's decision (accept/reject). Adding a submit-time
+  #     confirmation = scope creep + extra noise in the guest's inbox.
+  #   - The after_commit_hook stub is kept so the contract matches Accept and
+  #     Reject, and so a future "submit confirmation" feature plugs in cleanly.
   class Create
     Result = AppointmentRequests::Result
 
@@ -53,9 +54,7 @@ module AppointmentRequests
       email.to_s.strip.downcase.presence
     end
 
-    # P4 wiring point: enqueue a "request submitted" confirmation email here.
-    def after_commit_hook(_record)
-      # no-op in P3
-    end
+    # Intentional no-op: no submit-confirmation mail (out of spec, see comments above).
+    def after_commit_hook(_record); end
   end
 end

@@ -1,0 +1,18 @@
+<h2>Good news — your appointment was accepted</h2>
+
+<p>Hi <%= @request.guest_name %>,</p>
+
+<p><strong><%= @nutritionist.name %></strong> accepted your appointment request.</p>
+
+<table cellpadding="6" style="border-collapse:collapse;font-family:system-ui,sans-serif;">
+  <tr><td><strong>Service</strong></td><td><%= @service.name %></td></tr>
+  <tr><td><strong>Date</strong></td><td><%= @starts_at.strftime("%A, %B %d, %Y") %></td></tr>
+  <tr><td><strong>Time</strong></td><td><%= @starts_at.strftime("%H:%M") %> (Europe/Lisbon)</td></tr>
+  <tr><td><strong>Duration</strong></td><td><%= @service.duration_minutes %> minutes</td></tr>
+  <tr><td><strong>Location</strong></td><td><%= @service.location %></td></tr>
+  <tr><td><strong>Price</strong></td><td>€<%= format("%.2f", @service.price_cents / 100.0) %></td></tr>
+</table>
+
+<p>Please be on time. If you need to cancel, reply to this email.</p>
+
+<p>— Nutri App</p>

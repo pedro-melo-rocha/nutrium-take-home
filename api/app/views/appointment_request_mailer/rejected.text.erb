@@ -1,0 +1,8 @@
+Hi <%= @request.guest_name %>,
+
+<%= @nutritionist.name %> was unable to accept your appointment request for
+<%= @service.name %> on <%= @starts_at.strftime("%A, %B %d, %Y at %H:%M") %>.
+
+You're welcome to book another slot anytime.
+
+— Nutri App

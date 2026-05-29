@@ -46,4 +46,9 @@ group :development, :test do
   gem "shoulda-matchers", "~> 6.4"
 end
 
+group :development do
+  # Intercept outbound mail and open it in the browser instead of sending —
+  gem "letter_opener", "~> 1.10"
+end
+
 
