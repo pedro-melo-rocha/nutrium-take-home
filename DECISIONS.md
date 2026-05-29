@@ -17,6 +17,7 @@ Why this app looks the way it does. One-liner per choice; deeper rationale in co
 
 ## Data
 - **No `Guest` table** — spec is email-only, no auth; `guest_name` + `guest_email` denormalized on each request.
+- **Nutritionist display fields (`title` / `license_number` / `photo_url` / `bio`)** — all nullable; back the reference search-result card. `bio` is stored but not in the list payload (personal-page detail, out of list scope).
 - **`ends_at` snapshot, not derived** — accepted appointments are contracts at booking time; service-duration changes must not shift past bookings.
 - **`nutritionist_id` denormalized on `appointment_request`** — required for the GiST exclusion constraint; query convenience is a bonus.
 - **Status enum: `pending` / `accepted` / `rejected` / `canceled`** — `canceled` covers both guest-supersede and overlap auto-reject.

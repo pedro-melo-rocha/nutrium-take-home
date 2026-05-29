@@ -59,6 +59,19 @@ RSpec.describe "GET /api/v1/nutritionists", type: :request do
     expect(json["results"]).to eq([])
   end
 
+  it "includes nutritionist profile fields on each card" do
+    ana.update!(title: "Sports Nutritionist", license_number: "PT-0007", photo_url: "https://cdn.example/ana.png")
+
+    get "/api/v1/nutritionists", params: { location: "Braga" }
+
+    card = response.parsed_body["results"].first
+    expect(card).to include(
+      "title" => "Sports Nutritionist",
+      "license_number" => "PT-0007",
+      "photo_url" => "https://cdn.example/ana.png"
+    )
+  end
+
   it "embeds services scoped to the chosen location" do
     create(:service, nutritionist: ana, name: "Online Follow-up", location: "Online")
 

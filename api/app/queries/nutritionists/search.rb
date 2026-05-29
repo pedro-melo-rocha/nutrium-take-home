@@ -1,17 +1,4 @@
 module Nutritionists
-  # Lists nutritionists whose services match the search terms.
-  #
-  # Inputs: `q` matches Nutritionist#name OR Service#name (case-insensitive);
-  # `location` is case-insensitive equality on Service#location.
-  #
-  # Spec rule: a blank OR "invalid" location falls back to "Braga". "Invalid"
-  # collapses into "yields zero results" — no canonical location list needed.
-  # `#location` reports the location actually used after any fallback, so the
-  # UI can label results ("Showing results for Braga").
-  #
-  # Name match alone is not enough: a nutritionist with services only in Porto
-  # must NOT appear in a Braga search. Embedded services are filtered to the
-  # resolved location.
   class Search
     DEFAULT_LOCATION = "Braga".freeze
 
@@ -27,7 +14,6 @@ module Nutritionists
       @results
     end
 
-    # Location actually used after any fallback. Triggers the search.
     def location
       compute
       @location
@@ -40,9 +26,6 @@ module Nutritionists
 
       requested = @requested_location || DEFAULT_LOCATION
       found = nutritionists_for(requested)
-
-      # Blank or invalid (zero-hit) location → Braga. Skip the second query when
-      # the request was already Braga or already produced hits.
       if found.empty? && requested.casecmp(DEFAULT_LOCATION) != 0
         @location = DEFAULT_LOCATION
         @results = nutritionists_for(DEFAULT_LOCATION)
@@ -83,6 +66,9 @@ module Nutritionists
       {
         id: nutri.id,
         name: nutri.name,
+        title: nutri.title,
+        license_number: nutri.license_number,
+        photo_url: nutri.photo_url,
         services: (services || []).map { |s|
           {
             id: s.id,

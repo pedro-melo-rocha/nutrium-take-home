@@ -1,11 +1,6 @@
 require "rails_helper"
 
 RSpec.describe Nutritionists::Search do
-  # Build a small, deterministic fixture set:
-  #   - Ana (Braga) offers "Initial Consultation" in Braga and "Online Follow-up" online
-  #   - Bruno (Porto) offers "Sports Nutrition" in Porto
-  #   - Catarina (Braga) offers "Weight Management" in Braga
-  #   - Diogo (Lisboa) offers "Diabetes Counseling" in Lisboa
   let!(:ana)       { create(:nutritionist, name: "Ana Silva") }
   let!(:bruno)     { create(:nutritionist, name: "Bruno Costa") }
   let!(:catarina)  { create(:nutritionist, name: "Catarina Lopes") }
@@ -132,11 +127,22 @@ RSpec.describe Nutritionists::Search do
   end
 
   describe "JSON shape" do
+    it "exposes profile fields (title, license_number, photo_url) per nutritionist" do
+      ana.update!(title: "Clinical Nutritionist", license_number: "PT-0042", photo_url: "https://cdn.example/ana.png")
+
+      results = described_class.new(location: "Braga").results
+      ana_result = results.find { |r| r[:name] == "Ana Silva" }
+
+      expect(ana_result).to include(:id, :name, :title, :license_number, :photo_url, :services)
+      expect(ana_result[:title]).to eq("Clinical Nutritionist")
+      expect(ana_result[:license_number]).to eq("PT-0042")
+      expect(ana_result[:photo_url]).to eq("https://cdn.example/ana.png")
+    end
+
     it "exposes id, name, price_cents, location, duration_minutes per service" do
       results = described_class.new(location: "Braga").results
       ana_result = results.find { |r| r[:name] == "Ana Silva" }
 
-      expect(ana_result).to include(:id, :name, :services)
       service = ana_result[:services].first
       expect(service).to include(
         :id, :name, :price_cents, :location, :duration_minutes
