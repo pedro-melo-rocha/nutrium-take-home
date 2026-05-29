@@ -1,6 +1,6 @@
 require "rails_helper"
 
-RSpec.describe Nutritionists::Search do
+RSpec.describe NutritionistSearch do
   let!(:ana)       { create(:nutritionist, name: "Ana Silva") }
   let!(:bruno)     { create(:nutritionist, name: "Bruno Costa") }
   let!(:catarina)  { create(:nutritionist, name: "Catarina Lopes") }

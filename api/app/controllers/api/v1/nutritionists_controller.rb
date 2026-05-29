@@ -1,9 +1,9 @@
 module Api
   module V1
     class NutritionistsController < ApplicationController
-      # GET /api/v1/nutritionists?q=&location=
+      # GET /api/v1/nutritionists?q=&location=&page=&per_page=
       def index
-        search = ::Nutritionists::Search.new(
+        search = NutritionistSearch.new(
           q: params[:q],
           location: params[:location],
           page: params[:page],
