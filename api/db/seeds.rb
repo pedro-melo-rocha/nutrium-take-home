@@ -1,14 +1,9 @@
-# Idempotent demo data. Re-running does not duplicate rows: natural keys are
-# email (Nutritionist) and [nutritionist, name] (Service). Roster is
-# deterministic so every reviewer sees the same dataset.
-
 require "faker"
 
 Faker::Config.locale = :"pt-PT"
 
 puts "Seeding…"
 
-# Each nutritionist gets a deterministic 2..4 subset (rotated by index).
 SERVICE_CATALOG = [
   { name: "Initial Consultation",   price_cents: 5500, duration_minutes: 60 },
   { name: "Follow-up Consultation", price_cents: 3500, duration_minutes: 30 },
@@ -24,7 +19,8 @@ SERVICE_CATALOG = [
 
 LOCATIONS = [ "Braga", "Porto", "Lisboa", "Guimarães", "Coimbra", "Online" ].freeze
 
-# Roster biased toward Braga so the spec-default search returns results.
+TITLES = [ "Dietitian", "Clinical Nutritionist", "Sports Nutritionist", "Pediatric Nutritionist" ].freeze
+
 NUTRITIONISTS = [
   { name: "Ana Margarida Silva",    email: "ana.silva@nutri.example",       location: "Braga"     },
   { name: "João Pedro Ferreira",    email: "joao.ferreira@nutri.example",   location: "Braga"     },
@@ -40,10 +36,18 @@ NUTRITIONISTS = [
   { name: "Luís Carlos Pereira",    email: "luis.pereira@nutri.example",    location: "Coimbra"   }
 ].freeze
 
-nutritionists = NUTRITIONISTS.map do |attrs|
-  Nutritionist.find_or_create_by!(email: attrs[:email]) do |n|
+nutritionists = NUTRITIONISTS.each_with_index.map do |attrs, idx|
+  nutri = Nutritionist.find_or_create_by!(email: attrs[:email]) do |n|
     n.name = attrs[:name]
   end
+
+  nutri.update!(
+    name: attrs[:name],
+    title: TITLES[idx % TITLES.size],
+    license_number: format("PT-%04d", 1000 + idx),
+    photo_url: "https://i.pravatar.cc/150?u=#{attrs[:email]}"
+  )
+  nutri
 end
 
 nutritionists.each_with_index do |nutri, idx|
@@ -53,8 +57,6 @@ nutritionists.each_with_index do |nutri, idx|
   picks = SERVICE_CATALOG.rotate(idx).first(count)
 
   picks.each_with_index do |svc_attrs, svc_idx|
-    # Slot 0: home location. Slot 1: Online (so the online filter has hits).
-    # Remainder: rotate through LOCATIONS for variety.
     location =
       case svc_idx
       when 0 then home
@@ -69,7 +71,6 @@ nutritionists.each_with_index do |nutri, idx|
   end
 end
 
-# Seed pending requests so the nutritionist queue renders non-empty.
 SAMPLE_REQUESTS = [
   { nutri_email: "ana.silva@nutri.example",   guest_name: "Sara Pinto",     guest_email: "sara.pinto@example.com",   days_from_now: 2, hour: 10 },
   { nutri_email: "ana.silva@nutri.example",   guest_name: "Hugo Martins",   guest_email: "hugo.martins@example.com", days_from_now: 3, hour: 14 },
@@ -80,14 +81,9 @@ SAMPLE_REQUESTS.each do |req|
   nutri = Nutritionist.find_by!(email: req[:nutri_email])
   service = nutri.services.first
   next unless service
+  next if AppointmentRequest.exists?(guest_email: req[:guest_email], status: :pending)
 
   starts_at = (Date.current + req[:days_from_now]).to_time.change(hour: req[:hour])
-  existing = AppointmentRequest.find_by(
-    nutritionist_id: nutri.id,
-    guest_email: req[:guest_email],
-    starts_at: starts_at
-  )
-  next if existing
 
   AppointmentRequest.create!(
     nutritionist: nutri,
