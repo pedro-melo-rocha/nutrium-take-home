@@ -60,11 +60,18 @@ curl 'http://localhost:3000/api/v1/nutritionists'
 
 # Filter by location + free-text query (name OR service name)
 curl 'http://localhost:3000/api/v1/nutritionists?location=Porto&q=sport'
+
+# Paginate (page 1-based; per_page default 10, capped at 50)
+curl 'http://localhost:3000/api/v1/nutritionists?location=Braga&page=2&per_page=5'
 ```
 
 A blank or invalid location falls back to `Braga` ("invalid" = yields zero
 results). The response reports the resolved `location`, so the frontend can
-label results ("Showing results for Braga").
+label results ("Showing results for Braga"), plus a `pagination` block:
+
+```json
+{ "page": 1, "per_page": 10, "total_count": 6, "total_pages": 1 }
+```
 
 ### Create an appointment request
 

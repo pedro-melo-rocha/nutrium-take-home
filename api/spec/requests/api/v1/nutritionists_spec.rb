@@ -81,4 +81,27 @@ RSpec.describe "GET /api/v1/nutritionists", type: :request do
     ana_result = json["results"].first
     expect(ana_result["services"].map { |s| s["name"] }).to eq([ "Initial Consultation" ])
   end
+
+  it "returns a pagination block with sensible defaults" do
+    get "/api/v1/nutritionists", params: { location: "Braga" }
+
+    expect(response.parsed_body["pagination"]).to eq(
+      "page" => 1, "per_page" => 10, "total_count" => 1, "total_pages" => 1
+    )
+  end
+
+  it "honors page and per_page params" do
+    3.times do |i|
+      n = create(:nutritionist, name: "Extra #{i}")
+      create(:service, nutritionist: n, location: "Braga")
+    end
+
+    get "/api/v1/nutritionists", params: { location: "Braga", per_page: 2, page: 2 }
+
+    json = response.parsed_body
+    expect(json["results"].size).to eq(2)
+    expect(json["pagination"]).to eq(
+      "page" => 2, "per_page" => 2, "total_count" => 4, "total_pages" => 2
+    )
+  end
 end

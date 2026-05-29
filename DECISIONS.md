@@ -30,6 +30,7 @@ Why this app looks the way it does. One-liner per choice; deeper rationale in co
 
 ## API
 - **Search: blank OR invalid location → Braga** — "invalid" collapses into "yields zero results" (no canonical location list to validate against). The response reports the resolved `location` so the UI can label results ("Showing results for Braga"). Matches the spec literally ("no location or invalid location → consider Braga as default");
+- **Search pagination: `page` / `per_page` (default 10, cap 50)** — offset/limit on the ordered nutritionist set (not services); response carries a `pagination` block (`page`, `per_page`, `total_count`, `total_pages`). Ordered by `name, id` so offset paging is stable.
 - **`PATCH` body uses `decision` (not `action`)** — `params[:action]` is reserved by Rails for the controller-action name.
 - **Lookup endpoint exists** — `GET /appointment_requests/lookup?guest_email=` returns the guest's active (pending OR accepted) request so the frontend can show a confirmation dialog before superseding. No auth means anyone with an email can probe; acceptable for take-home scope (spec is no-auth).
 - **Only pending is auto-superseded on new submit** — accepted appointments survive. If a guest wants to cancel an accepted appointment to book a new slot, the frontend dialog can explain; no separate "cancel my accepted" endpoint shipped (out of spec scope).

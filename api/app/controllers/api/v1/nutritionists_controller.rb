@@ -3,17 +3,18 @@ module Api
     class NutritionistsController < ApplicationController
       # GET /api/v1/nutritionists?q=&location=
       def index
-        # `::` prefix avoids resolving to Api::V1::Nutritionists (the nested
-        # controller namespace), which would shadow the query object.
         search = ::Nutritionists::Search.new(
           q: params[:q],
-          location: params[:location]
+          location: params[:location],
+          page: params[:page],
+          per_page: params[:per_page]
         )
 
         render json: {
           location: search.location,
           query: search.q,
-          results: search.results
+          results: search.results,
+          pagination: search.pagination
         }
       end
     end

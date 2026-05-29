@@ -126,6 +126,53 @@ RSpec.describe Nutritionists::Search do
     end
   end
 
+  describe "pagination" do
+    let!(:paged) do
+      %w[P1 P2 P3 P4 P5].map do |label|
+        n = create(:nutritionist, name: "Paged #{label}")
+        create(:service, nutritionist: n, name: "Initial Consultation", location: "Braga")
+        n
+      end
+    end
+
+    it "defaults to page 1 / per_page 10" do
+      search = described_class.new(location: "Braga")
+
+      expect(search.page).to eq(1)
+      expect(search.per_page).to eq(10)
+      expect(search.pagination).to eq(page: 1, per_page: 10, total_count: 7, total_pages: 1)
+      expect(search.results.size).to eq(7)
+    end
+
+    it "slices results to per_page and reports total meta" do
+      search = described_class.new(location: "Braga", per_page: 2, page: 1)
+
+      expect(search.results.size).to eq(2)
+      expect(search.pagination).to eq(page: 1, per_page: 2, total_count: 7, total_pages: 4)
+    end
+
+    it "returns the next slice on page 2, ordered by name across pages" do
+      page1 = described_class.new(location: "Braga", per_page: 2, page: 1).results.map { |r| r[:name] }
+      page2 = described_class.new(location: "Braga", per_page: 2, page: 2).results.map { |r| r[:name] }
+
+      all_names = %w[Ana\ Silva Catarina\ Lopes Paged\ P1 Paged\ P2 Paged\ P3 Paged\ P4 Paged\ P5]
+      expect(page1).to eq(all_names[0, 2])
+      expect(page2).to eq(all_names[2, 2])
+      expect(page1 & page2).to be_empty
+    end
+
+    it "caps per_page at MAX_PER_PAGE" do
+      search = described_class.new(location: "Braga", per_page: 1000)
+      expect(search.per_page).to eq(described_class::MAX_PER_PAGE)
+    end
+
+    it "coerces blank/invalid page to 1 and blank/invalid per_page to the default" do
+      expect(described_class.new(location: "Braga", page: "0", per_page: "-3").page).to eq(1)
+      expect(described_class.new(location: "Braga", page: "abc", per_page: "xyz").per_page).to eq(10)
+      expect(described_class.new(location: "Braga", page: nil, per_page: nil).page).to eq(1)
+    end
+  end
+
   describe "JSON shape" do
     it "exposes profile fields (title, license_number, photo_url) per nutritionist" do
       ana.update!(title: "Clinical Nutritionist", license_number: "PT-0042", photo_url: "https://cdn.example/ana.png")
