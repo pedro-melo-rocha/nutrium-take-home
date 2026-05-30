@@ -6,11 +6,11 @@ import {
   type ReactNode,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useCreateAppointment } from '../../api/appointments'
+import { lookupGuest, useCreateAppointment } from '../../api/appointments'
 import { ApiError } from '../../lib/api'
-import { formatDuration, formatPrice } from '../../lib/format'
-import type { NutritionistCard } from '../../lib/types'
-import { CalendarIcon, CheckIcon, CloseIcon } from '../icons'
+import { formatDateTime, formatDuration, formatPrice } from '../../lib/format'
+import type { AppointmentRequest, NutritionistCard } from '../../lib/types'
+import { AlertIcon, CalendarIcon, CheckIcon, CloseIcon } from '../icons'
 import { Spinner } from '../Spinner'
 
 interface Props {
@@ -18,7 +18,6 @@ interface Props {
   onClose: () => void
 }
 
-/** datetime-local value for "now + 1h", used as the min selectable slot. */
 function defaultSlot(): string {
   const d = new Date(Date.now() + 60 * 60 * 1000)
   d.setMinutes(0, 0, 0)
@@ -41,6 +40,9 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [startsAt, setStartsAt] = useState(defaultSlot)
+  const [conflict, setConflict] = useState<AppointmentRequest | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
   // Lock body scroll + close on Escape.
   useEffect(() => {
@@ -54,14 +56,34 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
     }
   }, [onClose])
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
+  function doCreate() {
     create.mutate({
       service_id: serviceId,
       guest_name: name.trim(),
       guest_email: email.trim(),
       starts_at: new Date(startsAt).toISOString(),
     })
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (confirmed) return doCreate()
+
+    setChecking(true)
+    try {
+      const { active } = await lookupGuest(email.trim())
+    
+      if (active && active.status === 'pending') {
+        setConflict(active)
+        return
+      }
+    } catch {
+      // Lookup failed — don't block booking; the backend still enforces the
+      // one-pending-per-guest rule on create.
+    } finally {
+      setChecking(false)
+    }
+    doCreate()
   }
 
   const succeeded = create.isSuccess
@@ -82,7 +104,11 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
         <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-slate-800">
-              {succeeded ? t('modal.sentTitle') : t('modal.scheduleTitle')}
+              {succeeded
+                ? t('modal.sentTitle')
+                : conflict
+                  ? t('modal.confirmReplaceTitle')
+                  : t('modal.scheduleTitle')}
             </h2>
             <p className="text-sm text-slate-500">
               {t('modal.with', { name: nutritionist.name })}
@@ -100,6 +126,26 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
 
         {succeeded ? (
           <Confirmation onClose={onClose} email={email} />
+        ) : conflict ? (
+          <ConfirmReplace
+            conflict={conflict}
+            pending={create.isPending}
+            error={
+              create.isError
+                ? create.error instanceof ApiError
+                  ? create.error.message
+                  : t('modal.genericError')
+                : null
+            }
+            onBack={() => {
+              setConflict(null)
+              setConfirmed(false)
+            }}
+            onConfirm={() => {
+              setConfirmed(true)
+              doCreate()
+            }}
+          />
         ) : (
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
             <fieldset className="flex flex-col gap-2">
@@ -184,10 +230,10 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
 
             <button
               type="submit"
-              disabled={create.isPending}
+              disabled={create.isPending || checking}
               className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-coral-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-coral-600 disabled:opacity-60"
             >
-              {create.isPending && <Spinner className="size-4" />}
+              {(create.isPending || checking) && <Spinner className="size-4" />}
               {t('modal.submit')}
             </button>
           </form>
@@ -209,6 +255,64 @@ function Field({
       {label}
       {children}
     </label>
+  )
+}
+
+function ConfirmReplace({
+  conflict,
+  pending,
+  error,
+  onBack,
+  onConfirm,
+}: {
+  conflict: AppointmentRequest
+  pending: boolean
+  error: string | null
+  onBack: () => void
+  onConfirm: () => void
+}) {
+  const { t } = useTranslation()
+  return (
+    <div className="flex flex-col gap-4 p-5">
+      <div className="flex gap-3">
+        <div className="grid size-10 shrink-0 place-items-center rounded-full bg-amber-100 text-amber-600">
+          <AlertIcon className="size-5" />
+        </div>
+        <p className="text-sm text-slate-600">
+          {t('modal.confirmReplaceBody', {
+            nutritionist: conflict.nutritionist?.name ?? '',
+            service: conflict.service?.name ?? '',
+            when: formatDateTime(conflict.starts_at),
+          })}
+        </p>
+      </div>
+
+      {error && (
+        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+          {error}
+        </p>
+      )}
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onBack}
+          disabled={pending}
+          className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+        >
+          {t('modal.confirmReplaceBack')}
+        </button>
+        <button
+          type="button"
+          onClick={onConfirm}
+          disabled={pending}
+          className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-coral-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-coral-600 disabled:opacity-60"
+        >
+          {pending && <Spinner className="size-4" />}
+          {t('modal.confirmReplaceCta')}
+        </button>
+      </div>
+    </div>
   )
 }
 

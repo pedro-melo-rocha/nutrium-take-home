@@ -24,17 +24,11 @@ export function useCreateAppointment() {
   })
 }
 
-export function useGuestLookup(email: string | null) {
-  return useQuery({
-    queryKey: ['lookup', email],
-    enabled: !!email,
-    queryFn: () =>
-      apiFetch<LookupResponse>(
-        `/api/v1/appointment_requests/lookup?guest_email=${encodeURIComponent(
-          email as string,
-        )}`,
-      ),
-  })
+
+export async function lookupGuest(email: string): Promise<LookupResponse> {
+  return apiFetch<LookupResponse>(
+    `/api/v1/appointment_requests/lookup?guest_email=${encodeURIComponent(email)}`,
+  )
 }
 
 export function useQueue(nutritionistId: string, status: AppointmentStatus) {
