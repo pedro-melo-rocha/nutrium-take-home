@@ -1,8 +1,5 @@
 class AppointmentRequest < ApplicationRecord
-  # `canceled` covers two cases: superseded by a newer pending from the same
-  # guest, OR auto-killed because another request was accepted on an
-  # overlapping slot. See DECISIONS.md (Data section).
-  STATUSES = %w[pending accepted rejected canceled].freeze
+  STATUSES = %w[pending accepted rejected].freeze
   enum :status, STATUSES.index_with(&:itself), default: "pending"
 
   belongs_to :nutritionist
@@ -31,13 +28,10 @@ class AppointmentRequest < ApplicationRecord
     self.guest_email = guest_email&.strip&.downcase.presence
   end
 
-  # Denormalized for the GiST exclusion expression. Kept in sync from service.
   def assign_nutritionist_from_service
     self.nutritionist_id ||= service&.nutritionist_id
   end
 
-  # `ends_at` is a snapshot at create-time. Service-duration changes must not
-  # shift past bookings — accepted appointments are contracts.
   def assign_ends_at_from_service
     return if ends_at.present?
     return if starts_at.blank? || service.blank? || service.duration_minutes.blank?

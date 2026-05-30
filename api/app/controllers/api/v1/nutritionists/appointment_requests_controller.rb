@@ -1,10 +1,11 @@
 module Api
   module V1
     module Nutritionists
-      # GET /api/v1/nutritionists/:nutritionist_id/appointment_requests?status=
-      # Backs the nutritionist queue page.
+      # Nutritionist queue + accept/reject, scoped to :nutritionist_id.
+      #   GET   /api/v1/nutritionists/:nutritionist_id/appointment_requests?status=
+      #   PATCH /api/v1/nutritionists/:nutritionist_id/appointment_requests/:id
       class AppointmentRequestsController < ApplicationController
-        VALID_STATUSES = %w[pending accepted rejected canceled].freeze
+        VALID_STATUSES = %w[pending accepted rejected].freeze
 
         def index
           nutritionist = ::Nutritionist.find(params[:nutritionist_id])
@@ -25,6 +26,34 @@ module Api
           end
 
           render json: { nutritionist: { id: nutritionist.id, name: nutritionist.name }, results: scope.map { |r| serialize(r) } }
+        end
+
+        # PATCH /api/v1/nutritionists/:nutritionist_id/appointment_requests/:id
+        # Body: { decision: "accept" | "reject" }.
+        # Key is `decision` (not `action`) — Rails reserves `params[:action]`.
+        # Request is looked up THROUGH the nutritionist, so one belonging to a
+        # different professional 404s (enforces "answered by the same nutritionist").
+        def update
+          nutritionist = ::Nutritionist.find(params[:nutritionist_id])
+          record = nutritionist.appointment_requests.find(params[:id])
+
+          service =
+            case params[:decision]
+            when "accept" then AppointmentRequests::Accept.new
+            when "reject" then AppointmentRequests::Reject.new
+            else
+              return render(
+                json: { error: { code: "missing_decision", message: "Body must include `decision`: \"accept\" or \"reject\"." } },
+                status: :unprocessable_content
+              )
+            end
+
+          result = service.call(record)
+          if result.success?
+            render json: serialize(result.record), status: :ok
+          else
+            render_error(result)
+          end
         end
 
         private

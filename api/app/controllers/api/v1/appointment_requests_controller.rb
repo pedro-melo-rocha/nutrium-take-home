@@ -13,31 +13,6 @@ module Api
         end
       end
 
-      # PATCH /api/v1/appointment_requests/:id
-      # Body: { decision: "accept" | "reject" }.
-      # Key is `decision` (not `action`) — Rails reserves `params[:action]`.
-      def update
-        record = AppointmentRequest.find(params[:id])
-
-        service =
-          case params[:decision]
-          when "accept" then AppointmentRequests::Accept.new
-          when "reject" then AppointmentRequests::Reject.new
-          else
-            return render(
-              json: { error: { code: "missing_decision", message: "Body must include `decision`: \"accept\" or \"reject\"." } },
-              status: :unprocessable_content
-            )
-          end
-
-        result = service.call(record)
-        if result.success?
-          render json: serialize(result.record), status: :ok
-        else
-          render_error(result)
-        end
-      end
-
       # GET /api/v1/appointment_requests/lookup?guest_email=foo@bar.com
       # Returns the guest's active (pending OR accepted) request, if any.
       # Security: no-auth spec — this endpoint reveals whether a given email
@@ -65,19 +40,6 @@ module Api
 
       def create_params
         params.require(:appointment_request).permit(:service_id, :guest_name, :guest_email, :starts_at)
-      end
-
-      def render_error(result)
-        status =
-          case result.error_code
-          when :validation_failed       then :unprocessable_content
-          when :overlap_conflict        then :conflict
-          when :concurrent_submission   then :conflict
-          when :invalid_state           then :conflict
-          else :unprocessable_content
-          end
-
-        render json: { error: { code: result.error_code.to_s, message: result.error_message } }, status: status
       end
 
       def serialize(record, include_service: true, include_nutritionist: true)

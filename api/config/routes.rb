@@ -4,13 +4,11 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       resources :nutritionists, only: [ :index ] do
-        resources :appointment_requests, only: [ :index ], module: :nutritionists
+        resources :appointment_requests, only: [ :index, :update ], module: :nutritionists
       end
 
-      resources :appointment_requests, only: [ :create, :update ] do
+      resources :appointment_requests, only: [ :create ] do
         collection do
-          # Frontend probes for active (pending/accepted) request before
-          # submitting a new one — drives the "cancel X and proceed?" prompt.
           get :lookup
         end
       end

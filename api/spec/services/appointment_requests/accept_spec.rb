@@ -33,36 +33,36 @@ RSpec.describe AppointmentRequests::Accept do
       expect(req.reload).to be_accepted
     end
 
-    it "rejects (invalid_state) accepting a canceled request" do
+    it "rejects (invalid_state) accepting an already-rejected request" do
       req = make_request(starts_at: 2.days.from_now)
-      req.update!(status: :canceled)
+      req.update!(status: :rejected)
 
       result = described_class.new.call(req)
       expect(result).to be_failure
       expect(result.error_code).to eq(:invalid_state)
     end
 
-    it "auto-cancels OTHER overlapping pending requests for the same nutritionist" do
+    it "auto-rejects OTHER overlapping pending requests for the same nutritionist" do
       start_a = 2.days.from_now.change(hour: 10) # 10:00..11:00
       target  = make_request(starts_at: start_a)
 
-      overlap_partial = make_request(starts_at: start_a + 30.minutes) # 10:30..11:30
-      overlap_inside  = make_request(starts_at: start_a + 15.minutes) # 10:15..11:15
-      disjoint        = make_request(starts_at: start_a + 2.hours)    # 12:00..13:00 (no overlap)
+      overlap_partial = make_request(starts_at: start_a + 30.minutes)
+      overlap_inside  = make_request(starts_at: start_a + 15.minutes)
+      disjoint        = make_request(starts_at: start_a + 2.hours)
 
       result = described_class.new.call(target)
       expect(result).to be_success
 
       expect(target.reload).to be_accepted
-      expect(overlap_partial.reload).to be_canceled
-      expect(overlap_inside.reload).to be_canceled
+      expect(overlap_partial.reload).to be_rejected
+      expect(overlap_inside.reload).to be_rejected
       expect(disjoint.reload).to be_pending
     end
 
     it "treats a touching slot (ends_at == next.starts_at) as NON-overlapping (tstzrange [) semantics)" do
       start_a = 2.days.from_now.change(hour: 10)
-      target  = make_request(starts_at: start_a)                  # 10:00..11:00
-      touching = make_request(starts_at: target.ends_at)          # 11:00..12:00 — touches, does not overlap
+      target  = make_request(starts_at: start_a)         
+      touching = make_request(starts_at: target.ends_at)
 
       result = described_class.new.call(target)
       expect(result).to be_success
@@ -70,7 +70,7 @@ RSpec.describe AppointmentRequests::Accept do
       expect(touching.reload).to be_pending
     end
 
-    it "does NOT cancel overlapping pending requests for a DIFFERENT nutritionist" do
+    it "does NOT reject overlapping pending requests for a DIFFERENT nutritionist" do
       other_nutri   = create(:nutritionist)
       other_service = create(:service, nutritionist: other_nutri, duration_minutes: 60)
       start_a = 2.days.from_now.change(hour: 10)
@@ -89,9 +89,6 @@ RSpec.describe AppointmentRequests::Accept do
     end
 
     it "returns overlap_conflict when an accepted request already covers the same slot" do
-      # second must be CREATED AFTER first is accepted; otherwise first.accept
-      # would have already auto-canceled second via the overlap rule, and we
-      # would be testing a different code path.
       start_a = 2.days.from_now.change(hour: 10)
       first  = make_request(starts_at: start_a)
 

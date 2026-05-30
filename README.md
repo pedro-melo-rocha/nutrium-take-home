@@ -89,7 +89,7 @@ curl -X POST 'http://localhost:3000/api/v1/appointment_requests' \
 ```
 
 Returns `201 Created` with the persisted record. Any prior `pending` request
-from the same email is auto-canceled (one-pending-per-guest invariant; the
+from the same email is auto-rejected (one-pending-per-guest invariant; the
 partial unique index is the race guard).
 
 Errors:
@@ -107,12 +107,15 @@ dialog before superseding an existing pending/accepted request.
 
 ### Accept / reject (nutritionist queue)
 
+Nested under the nutritionist, so a request belonging to a different
+professional 404s.
+
 ```bash
-curl -X PATCH 'http://localhost:3000/api/v1/appointment_requests/42' \
+curl -X PATCH 'http://localhost:3000/api/v1/nutritionists/1/appointment_requests/42' \
   -H 'Content-Type: application/json' \
   -d '{ "decision": "accept" }'
 
-curl -X PATCH 'http://localhost:3000/api/v1/appointment_requests/42' \
+curl -X PATCH 'http://localhost:3000/api/v1/nutritionists/1/appointment_requests/42' \
   -H 'Content-Type: application/json' \
   -d '{ "decision": "reject" }'
 ```
@@ -120,7 +123,8 @@ curl -X PATCH 'http://localhost:3000/api/v1/appointment_requests/42' \
 `decision` (not `action` — Rails reserves `params[:action]`).
 
 On accept, all other pending requests for the same nutritionist whose time
-range overlaps are auto-canceled. The Postgres GiST exclusion constraint
+range overlaps are auto-rejected (the guest gets a distinct `slot_unavailable`
+mail framing it as a slot conflict). The Postgres GiST exclusion constraint
 `no_overlapping_accepted` is the race guard against double-booking.
 
 Errors:
@@ -137,7 +141,7 @@ Mails enqueue *after* the transaction commits (never inside it). In dev,
 curl 'http://localhost:3000/api/v1/nutritionists/1/appointment_requests?status=pending'
 ```
 
-`status` ∈ `pending | accepted | rejected | canceled`. Defaults to `pending`.
+`status` ∈ `pending | accepted | rejected`. Defaults to `pending`.
 
 ## Notes / Decisions
 

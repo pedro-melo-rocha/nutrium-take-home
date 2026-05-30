@@ -35,7 +35,7 @@ RSpec.describe "Api::V1::AppointmentRequests", type: :request do
       post_create(starts_at: 3.days.from_now.iso8601)
 
       expect(response).to have_http_status(:created)
-      expect(AppointmentRequest.find(first_id).status).to eq("canceled")
+      expect(AppointmentRequest.find(first_id).status).to eq("rejected")
     end
 
     it "returns 422 on validation failure (past starts_at)" do
@@ -50,57 +50,6 @@ RSpec.describe "Api::V1::AppointmentRequests", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["error"]["code"]).to eq("validation_failed")
-    end
-  end
-
-  describe "PATCH /api/v1/appointment_requests/:id" do
-    let!(:req) do
-      create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: 2.days.from_now)
-    end
-
-    it "accepts a pending request and returns 200" do
-      patch "/api/v1/appointment_requests/#{req.id}", params: { decision: "accept" }, as: :json
-
-      expect(response).to have_http_status(:ok)
-      expect(response.parsed_body["status"]).to eq("accepted")
-      expect(req.reload).to be_accepted
-    end
-
-    it "rejects a pending request and returns 200" do
-      patch "/api/v1/appointment_requests/#{req.id}", params: { decision: "reject" }, as: :json
-
-      expect(response).to have_http_status(:ok)
-      expect(response.parsed_body["status"]).to eq("rejected")
-    end
-
-    it "returns 422 when decision is missing" do
-      patch "/api/v1/appointment_requests/#{req.id}", params: {}, as: :json
-
-      expect(response).to have_http_status(:unprocessable_content)
-      expect(response.parsed_body["error"]["code"]).to eq("missing_decision")
-    end
-
-    it "returns 409 when trying to accept while another request already occupies an overlapping slot" do
-      # second must be created AFTER first is accepted; otherwise first's
-      # accept logic auto-cancels second via overlap rule and the second
-      # accept would be on a canceled request (invalid_state, not overlap).
-      first = create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: 3.days.from_now.change(hour: 10))
-      patch "/api/v1/appointment_requests/#{first.id}", params: { decision: "accept" }, as: :json
-      expect(response).to have_http_status(:ok)
-
-      second = create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: first.starts_at + 30.minutes)
-      patch "/api/v1/appointment_requests/#{second.id}", params: { decision: "accept" }, as: :json
-      expect(response).to have_http_status(:conflict)
-      expect(response.parsed_body["error"]["code"]).to eq("overlap_conflict")
-    end
-
-    it "auto-cancels other overlapping pendings when accepting" do
-      overlap = create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: req.starts_at + 30.minutes)
-
-      patch "/api/v1/appointment_requests/#{req.id}", params: { decision: "accept" }, as: :json
-
-      expect(response).to have_http_status(:ok)
-      expect(overlap.reload).to be_canceled
     end
   end
 
@@ -148,10 +97,7 @@ RSpec.describe "Api::V1::AppointmentRequests", type: :request do
       expect(response.parsed_body["active"]["status"]).to eq("accepted")
     end
 
-    it "does NOT return canceled or rejected requests as active" do
-      create(:appointment_request,
-        nutritionist: nutritionist, service: service,
-        guest_email: "sara@example.com", starts_at: 2.days.from_now).update!(status: :canceled)
+    it "does NOT return rejected requests as active" do
       create(:appointment_request,
         nutritionist: nutritionist, service: service,
         guest_email: "sara@example.com", starts_at: 3.days.from_now).update!(status: :rejected)

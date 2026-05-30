@@ -1,13 +1,5 @@
 require "rails_helper"
 
-# Verifies the post-commit enqueue pattern across the service objects:
-#   1. Mails are enqueued via ActiveJob (not delivered inline)
-#   2. Enqueue happens only after the transaction commits (failure paths
-#      must NOT enqueue mail)
-#   3. Accept enqueues both the acceptance mail and overlap-cancellation
-#      mails for each auto-canceled overlap
-#
-# ActiveJob::TestHelper gives us `have_enqueued_mail` and friends.
 RSpec.describe "Appointment notification enqueue", type: :service do
   include ActiveJob::TestHelper
 
@@ -34,7 +26,7 @@ RSpec.describe "Appointment notification enqueue", type: :service do
         .with(params: { request: req }, args: [])
     end
 
-    it "enqueues a `canceled_by_overlap` mail for each auto-canceled overlap" do
+    it "enqueues a `slot_unavailable` mail for each auto-rejected overlap" do
       start_a = 2.days.from_now.change(hour: 10)
       target  = make_request(starts_at: start_a)
       overlap_a = make_request(starts_at: start_a + 30.minutes)
@@ -42,10 +34,10 @@ RSpec.describe "Appointment notification enqueue", type: :service do
 
       expect {
         AppointmentRequests::Accept.new.call(target)
-      }.to have_enqueued_mail(AppointmentRequestMailer, :canceled_by_overlap).twice
+      }.to have_enqueued_mail(AppointmentRequestMailer, :slot_unavailable).twice
         .and have_enqueued_mail(AppointmentRequestMailer, :accepted).once
 
-      [ overlap_a, overlap_b ].each { |r| expect(r.reload).to be_canceled }
+      [ overlap_a, overlap_b ].each { |r| expect(r.reload).to be_rejected }
     end
 
     it "does NOT enqueue any mail when the accept fails with overlap_conflict" do
@@ -64,7 +56,7 @@ RSpec.describe "Appointment notification enqueue", type: :service do
 
     it "does NOT enqueue mail when the record is in an invalid state" do
       req = make_request(starts_at: 2.days.from_now)
-      req.update!(status: :canceled)
+      req.update!(status: :rejected)
 
       expect {
         AppointmentRequests::Accept.new.call(req)
@@ -94,7 +86,6 @@ RSpec.describe "Appointment notification enqueue", type: :service do
 
   describe "AppointmentRequests::Create (no submit-confirmation mail by design)" do
     it "does NOT enqueue any mail on successful create" do
-      # Submit-confirmation mail is intentionally not implemented — see service comment.
       params = {
         service_id: service.id,
         guest_name: "Sara",

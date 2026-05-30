@@ -25,12 +25,5 @@ RSpec.describe AppointmentRequests::Reject do
       expect(result).to be_failure
       expect(result.error_code).to eq(:invalid_state)
     end
-
-    it "fails with invalid_state when request is canceled" do
-      req.update!(status: :canceled)
-      result = described_class.new.call(req)
-      expect(result).to be_failure
-      expect(result.error_code).to eq(:invalid_state)
-    end
   end
 end

@@ -40,4 +40,67 @@ RSpec.describe "GET /api/v1/nutritionists/:id/appointment_requests", type: :requ
     starts = response.parsed_body["results"].map { |r| r["starts_at"] }
     expect(starts).to eq(starts.sort)
   end
+
+  describe "PATCH /api/v1/nutritionists/:nutritionist_id/appointment_requests/:id" do
+    let!(:req) do
+      create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: 2.days.from_now)
+    end
+
+    def patch_decision(decision, nutri: nutritionist, id: req.id)
+      patch "/api/v1/nutritionists/#{nutri.id}/appointment_requests/#{id}",
+        params: { decision: decision }, as: :json
+    end
+
+    it "accepts a pending request and returns 200" do
+      patch_decision("accept")
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["status"]).to eq("accepted")
+      expect(req.reload).to be_accepted
+    end
+
+    it "rejects a pending request and returns 200" do
+      patch_decision("reject")
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["status"]).to eq("rejected")
+    end
+
+    it "returns 422 when decision is missing" do
+      patch "/api/v1/nutritionists/#{nutritionist.id}/appointment_requests/#{req.id}", params: {}, as: :json
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["error"]["code"]).to eq("missing_decision")
+    end
+
+    it "404s when the request belongs to a different nutritionist (scoping)" do
+      patch_decision("accept", nutri: other_nutri)
+
+      expect(response).to have_http_status(:not_found)
+      expect(req.reload).to be_pending
+    end
+
+    it "returns 409 overlap_conflict when an accepted request already occupies an overlapping slot" do
+      # second must be created AFTER first is accepted; otherwise first's accept
+      # auto-rejects second via overlap, and the second accept would hit
+      # invalid_state instead of overlap.
+      first = create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: 3.days.from_now.change(hour: 10))
+      patch_decision("accept", id: first.id)
+      expect(response).to have_http_status(:ok)
+
+      second = create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: first.starts_at + 30.minutes)
+      patch_decision("accept", id: second.id)
+      expect(response).to have_http_status(:conflict)
+      expect(response.parsed_body["error"]["code"]).to eq("overlap_conflict")
+    end
+
+    it "auto-rejects other overlapping pendings when accepting" do
+      overlap = create(:appointment_request, nutritionist: nutritionist, service: service, starts_at: req.starts_at + 30.minutes)
+
+      patch_decision("accept")
+
+      expect(response).to have_http_status(:ok)
+      expect(overlap.reload).to be_rejected
+    end
+  end
 end

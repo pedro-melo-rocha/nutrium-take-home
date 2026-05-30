@@ -35,7 +35,7 @@ RSpec.describe AppointmentRequests::Create do
       ))
 
       expect(second_result).to be_success
-      expect(first.reload).to be_canceled
+      expect(first.reload).to be_rejected
       expect(AppointmentRequest.pending.where(guest_email: "sara.pinto@example.com").count).to eq(1)
     end
 
@@ -63,9 +63,6 @@ RSpec.describe AppointmentRequests::Create do
     end
 
     it "returns validation_failed when explicit nutritionist_id mismatches service.nutritionist_id" do
-      # The Create service auto-syncs nutritionist_id from the service when
-      # it's not supplied (see the model callback). So we have to pass an
-      # explicit mismatched nutritionist_id to exercise this validator.
       mismatch_nutri = create(:nutritionist)
       result = described_class.new.call(base_params.merge(nutritionist_id: mismatch_nutri.id))
 

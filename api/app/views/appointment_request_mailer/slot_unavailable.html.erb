@@ -3,15 +3,15 @@
 <p>Hi <%= @request.guest_name %>,</p>
 
 <p>The slot you requested with <strong><%= @nutritionist.name %></strong> is no
-longer available — another appointment was accepted for an overlapping time,
-so your request was automatically canceled.</p>
+longer available — another appointment was confirmed for an overlapping time,
+so your request couldn't be confirmed.</p>
 
 <table cellpadding="6" style="border-collapse:collapse;font-family:system-ui,sans-serif;">
   <tr><td><strong>Service</strong></td><td><%= @service.name %></td></tr>
   <tr><td><strong>Requested time</strong></td><td><%= @starts_at.strftime("%A, %B %d, %Y at %H:%M") %></td></tr>
 </table>
 
-<p>This wasn't a rejection from <%= @nutritionist.name %> — feel free to book
-another time.</p>
+<p>This was an automatic slot conflict, not a personal decision by
+<%= @nutritionist.name %> — feel free to request another time.</p>
 
 <p>— Nutri App</p>

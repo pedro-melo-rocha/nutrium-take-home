@@ -70,22 +70,22 @@ RSpec.describe AppointmentRequestMailer, type: :mailer do
     end
   end
 
-  describe "#canceled_by_overlap" do
-    let(:mail) { described_class.with(request: request_record).canceled_by_overlap }
+  describe "#slot_unavailable" do
+    let(:mail) { described_class.with(request: request_record).slot_unavailable }
 
     it "addresses the guest" do
       expect(mail.to).to eq([ "pedro@example.com" ])
     end
 
     it "uses a distinct subject from #rejected (slot conflict, not personal no)" do
-      expect(mail.subject).to eq("Your appointment request was canceled (slot no longer available)")
+      expect(mail.subject).to eq("Your appointment request couldn't be confirmed (slot no longer available)")
       expect(mail.subject).not_to include("declined")
     end
 
-    it "frames the cancellation as a slot conflict, not a rejection" do
+    it "frames it as a slot conflict, not a personal decision" do
       body = mail.body.encoded
       expect(body).to include("no longer available")
-      expect(body).to include("wasn't a rejection")
+      expect(body).to include("not a personal decision")
     end
   end
 end

@@ -1,6 +1,3 @@
-# Always invoke via `.with(request: req).<action>.deliver_later` AFTER the
-# model txn commits. `.with(...)` serializes only the record's GlobalID, so
-# the worker reloads on dequeue instead of carrying stale attributes.
 class AppointmentRequestMailer < ApplicationMailer
   def accepted
     @request      = params[:request]
@@ -26,8 +23,7 @@ class AppointmentRequestMailer < ApplicationMailer
     )
   end
 
-  # Slot conflict, not a personal "no" — separate copy from `rejected`.
-  def canceled_by_overlap
+  def slot_unavailable
     @request      = params[:request]
     @nutritionist = @request.nutritionist
     @service      = @request.service
@@ -35,7 +31,7 @@ class AppointmentRequestMailer < ApplicationMailer
 
     mail(
       to:      @request.guest_email,
-      subject: "Your appointment request was canceled (slot no longer available)"
+      subject: "Your appointment request couldn't be confirmed (slot no longer available)"
     )
   end
 end

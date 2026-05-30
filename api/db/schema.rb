@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_29_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_30_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "plpgsql"
@@ -31,7 +31,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_29_120000) do
     t.index ["nutritionist_id"], name: "index_appointment_requests_on_nutritionist_id"
     t.index ["service_id"], name: "index_appointment_requests_on_service_id"
     t.check_constraint "ends_at > starts_at", name: "ends_after_starts"
-    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying, 'canceled'::character varying]::text[])", name: "status_in_enum"
+    t.check_constraint "status::text = ANY (ARRAY['pending'::character varying, 'accepted'::character varying, 'rejected'::character varying]::text[])", name: "status_in_enum"
     t.exclusion_constraint "nutritionist_id WITH =, tstzrange(starts_at, ends_at) WITH &&", where: "(status)::text = 'accepted'::text", using: :gist, name: "no_overlapping_accepted"
   end
 
