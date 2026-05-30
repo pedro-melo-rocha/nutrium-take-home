@@ -67,13 +67,27 @@
     "errorTitle": "Não foi possível carregar os pedidos",
     "errorBody": "Confirme que a API está a correr e tente novamente.",
     "updateError": "Não foi possível atualizar este pedido.",
-    "emptyTitle": "Sem pedidos {{status}}",
+    "pendingTitle": "Pedidos pendentes",
+    "pendingSubtitle": "Aceite ou rejeite novos pedidos pendentes",
+    "historyTitle": "Histórico",
+    "historySubtitle": "Pedidos aceites e rejeitados",
+    "viewHistory": "Ver histórico",
+    "viewPending": "Ver pedidos pendentes",
+    "prevPage": "Anterior",
+    "nextPage": "Seguinte",
+    "emptyPendingTitle": "Sem pedidos pendentes",
     "emptyPendingBody": "Os novos pedidos de consulta aparecerão aqui.",
-    "emptyOtherBody": "Ainda não tem pedidos {{status}}."
+    "emptyHistoryTitle": "Ainda sem histórico",
+    "emptyHistoryBody": "Os pedidos que aceitar ou rejeitar aparecerão aqui."
   },
   "request": {
     "accept": "Aceitar",
-    "reject": "Rejeitar"
+    "reject": "Rejeitar",
+    "answer": "Responder ao pedido",
+    "answerTitle": "Responder ao pedido",
+    "email": "Email",
+    "when": "Quando",
+    "service": "Serviço"
   },
   "status": {
     "pending": "pendentes",

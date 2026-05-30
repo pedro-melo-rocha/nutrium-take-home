@@ -31,10 +31,14 @@ export async function lookupGuest(email: string): Promise<LookupResponse> {
   )
 }
 
-export function useQueue(nutritionistId: string, status: AppointmentStatus) {
+export function useQueue(
+  nutritionistId: string,
+  status: AppointmentStatus,
+  enabled = true,
+) {
   return useQuery({
     queryKey: ['queue', nutritionistId, status],
-    enabled: !!nutritionistId,
+    enabled: !!nutritionistId && enabled,
     queryFn: () =>
       apiFetch<QueueResponse>(
         `/api/v1/nutritionists/${nutritionistId}/appointment_requests?status=${status}`,

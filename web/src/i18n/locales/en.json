@@ -67,13 +67,27 @@
     "errorTitle": "Couldn't load requests",
     "errorBody": "Check that the API is running, then try again.",
     "updateError": "Could not update this request.",
-    "emptyTitle": "No {{status}} requests",
+    "pendingTitle": "Pending Requests",
+    "pendingSubtitle": "Accept or reject new pending requests",
+    "historyTitle": "History",
+    "historySubtitle": "Accepted and rejected requests",
+    "viewHistory": "View history",
+    "viewPending": "View pending requests",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "emptyPendingTitle": "No pending requests",
     "emptyPendingBody": "New appointment requests will appear here.",
-    "emptyOtherBody": "You have no {{status}} requests yet."
+    "emptyHistoryTitle": "No history yet",
+    "emptyHistoryBody": "Requests you accept or reject will appear here."
   },
   "request": {
     "accept": "Accept",
-    "reject": "Reject"
+    "reject": "Reject",
+    "answer": "Answer request",
+    "answerTitle": "Answer request",
+    "email": "Email",
+    "when": "When",
+    "service": "Service"
   },
   "status": {
     "pending": "pending",

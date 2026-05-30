@@ -1,35 +1,66 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link, useParams } from 'react-router-dom'
-import { useDecision, useQueue } from '../api/appointments'
+import { useQueue } from '../api/appointments'
+import { AnswerModal } from '../components/queue/AnswerModal'
+import { RequestCard } from '../components/queue/RequestCard'
 import { LanguageToggle } from '../components/LanguageToggle'
 import { Logo } from '../components/Logo'
 import { Spinner } from '../components/Spinner'
-import { RequestCard } from '../components/queue/RequestCard'
+import { ChevronLeftIcon, ChevronRightIcon, HistoryIcon } from '../components/icons'
 import { ApiError } from '../lib/api'
-import type { AppointmentStatus } from '../lib/types'
+import type { AppointmentRequest } from '../lib/types'
 
-const TAB_VALUES: AppointmentStatus[] = ['pending', 'accepted', 'rejected']
+const PAGE_SIZE = 3
+
+type View = 'pending' | 'history'
 
 export default function QueuePage() {
   const { t } = useTranslation()
   const { id = '' } = useParams()
-  const [status, setStatus] = useState<AppointmentStatus>('pending')
+  const [view, setView] = useState<View>('pending')
+  const [page, setPage] = useState(0)
+  const [answering, setAnswering] = useState<AppointmentRequest | null>(null)
 
-  const queue = useQueue(id, status)
-  const decision = useDecision(id)
+  const isHistory = view === 'history'
+  const pending = useQueue(id, 'pending')
+  const accepted = useQueue(id, 'accepted', isHistory)
+  const rejected = useQueue(id, 'rejected', isHistory)
 
-  const nutritionistName = queue.data?.nutritionist.name
-  const results = queue.data?.results ?? []
+  const nutritionistName = pending.data?.nutritionist.name
 
-  function decideFor(requestId: number, choice: 'accept' | 'reject') {
-    decision.mutate({ requestId, decision: choice })
+  const isLoading = isHistory
+    ? accepted.isLoading || rejected.isLoading
+    : pending.isLoading
+  const isFetching = isHistory
+    ? accepted.isFetching || rejected.isFetching
+    : pending.isFetching
+  const error = isHistory
+    ? (accepted.error ?? rejected.error)
+    : pending.error
+  const isError = isHistory
+    ? accepted.isError || rejected.isError
+    : pending.isError
+
+  const items: AppointmentRequest[] = isHistory
+    ? [...(accepted.data?.results ?? []), ...(rejected.data?.results ?? [])].sort(
+        (a, b) => b.created_at.localeCompare(a.created_at),
+      )
+    : (pending.data?.results ?? [])
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages - 1)
+  const visible = items.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE)
+
+  function switchView(next: View) {
+    setView(next)
+    setPage(0)
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-slate-50">
       <header className="bg-white shadow-sm">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-4">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <Link to="/">
             <Logo className="text-brand-600" />
           </Link>
@@ -50,106 +81,143 @@ export default function QueuePage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-slate-800">
-            {t('queue.title')}
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">{t('queue.subtitle')}</p>
-        </div>
+      <main className="mx-auto max-w-5xl px-4 py-8">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-semibold text-slate-800">
+                {isHistory ? t('queue.historyTitle') : t('queue.pendingTitle')}
+              </h1>
+              <p className="mt-1 text-sm text-slate-500">
+                {isHistory
+                  ? t('queue.historySubtitle')
+                  : t('queue.pendingSubtitle')}
+              </p>
+            </div>
 
-        {/* Status tabs */}
-        <div className="mb-6 inline-flex rounded-lg border border-slate-200 bg-white p-1">
-          {TAB_VALUES.map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setStatus(value)}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition ${
-                status === value
-                  ? 'bg-brand-500 text-white'
-                  : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {t(`statusLabel.${value}`)}
-            </button>
-          ))}
-        </div>
+            <div className="flex items-center gap-2">
+              <IconButton
+                ariaLabel={t('queue.prevPage')}
+                disabled={safePage <= 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                <ChevronLeftIcon className="size-5" />
+              </IconButton>
+              <IconButton
+                ariaLabel={t('queue.nextPage')}
+                disabled={safePage >= totalPages - 1}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              >
+                <ChevronRightIcon className="size-5" />
+              </IconButton>
+              <IconButton
+                ariaLabel={isHistory ? t('queue.viewPending') : t('queue.viewHistory')}
+                active={isHistory}
+                onClick={() => switchView(isHistory ? 'pending' : 'history')}
+              >
+                <HistoryIcon className="size-5" />
+              </IconButton>
+            </div>
+          </div>
 
-        {queue.isLoading ? (
-          <SkeletonList />
-        ) : queue.isError ? (
-          <EmptyState
-            title={t('queue.errorTitle')}
-            body={
-              queue.error instanceof ApiError
-                ? queue.error.message
-                : t('queue.errorBody')
-            }
-          />
-        ) : results.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {results.map((req) => {
-              const isThis =
-                decision.isPending &&
-                decision.variables?.requestId === req.id
-              const errThis =
-                decision.isError &&
-                decision.variables?.requestId === req.id
-              return (
+          {isLoading ? (
+            <SkeletonGrid />
+          ) : isError ? (
+            <EmptyState
+              title={t('queue.errorTitle')}
+              body={error instanceof ApiError ? error.message : t('queue.errorBody')}
+            />
+          ) : visible.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {visible.map((req) => (
                 <RequestCard
                   key={req.id}
                   request={req}
-                  pending={isThis}
-                  error={
-                    errThis
-                      ? decision.error instanceof ApiError
-                        ? decision.error.message
-                        : t('queue.updateError')
-                      : null
-                  }
-                  onDecide={(choice) => decideFor(req.id, choice)}
+                  onAnswer={() => setAnswering(req)}
                 />
-              )
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            title={t('queue.emptyTitle', { status: t(`status.${status}`) })}
-            body={
-              status === 'pending'
-                ? t('queue.emptyPendingBody')
-                : t('queue.emptyOtherBody', { status: t(`status.${status}`) })
-            }
-          />
-        )}
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title={t(
+                isHistory ? 'queue.emptyHistoryTitle' : 'queue.emptyPendingTitle',
+              )}
+              body={t(
+                isHistory ? 'queue.emptyHistoryBody' : 'queue.emptyPendingBody',
+              )}
+            />
+          )}
 
-        {queue.isFetching && !queue.isLoading && (
-          <div className="mt-4 flex justify-center">
-            <Spinner className="size-5 text-brand-500" />
-          </div>
-        )}
+          {isFetching && !isLoading && (
+            <div className="mt-4 flex justify-center">
+              <Spinner className="size-5 text-brand-500" />
+            </div>
+          )}
+        </section>
       </main>
+
+      {answering && (
+        <AnswerModal
+          request={answering}
+          nutritionistId={id}
+          onClose={() => setAnswering(null)}
+        />
+      )}
     </div>
   )
 }
 
-function SkeletonList() {
+function IconButton({
+  children,
+  ariaLabel,
+  active,
+  disabled,
+  onClick,
+}: {
+  children: ReactNode
+  ariaLabel: string
+  active?: boolean
+  disabled?: boolean
+  onClick: () => void
+}) {
   return (
-    <div className="flex flex-col gap-4">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      aria-pressed={active}
+      className={`grid size-9 place-items-center rounded-lg border transition disabled:cursor-not-allowed disabled:opacity-40 ${
+        active
+          ? 'border-brand-500 bg-brand-50 text-brand-600'
+          : 'border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {Array.from({ length: 3 }).map((_, i) => (
         <div
           key={i}
           className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5"
         >
-          <div className="flex gap-4">
+          <div className="flex items-center gap-3">
             <div className="size-12 shrink-0 rounded-full bg-slate-200" />
-            <div className="flex-1 space-y-2 py-1">
-              <div className="h-4 w-40 rounded bg-slate-200" />
-              <div className="h-3 w-52 rounded bg-slate-100" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-28 rounded bg-slate-200" />
+              <div className="h-3 w-36 rounded bg-slate-100" />
             </div>
           </div>
-          <div className="mt-4 h-9 w-full rounded bg-slate-100" />
+          <div className="mt-4 space-y-2">
+            <div className="h-3 w-32 rounded bg-slate-100" />
+            <div className="h-3 w-20 rounded bg-slate-100" />
+          </div>
+          <div className="mt-4 h-5 w-24 rounded bg-slate-100" />
         </div>
       ))}
     </div>
@@ -158,7 +226,7 @@ function SkeletonList() {
 
 function EmptyState({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 bg-white py-16 text-center">
+    <div className="rounded-2xl border border-dashed border-slate-300 py-16 text-center">
       <p className="text-base font-medium text-slate-700">{title}</p>
       <p className="mt-1 text-sm text-slate-500">{body}</p>
     </div>
