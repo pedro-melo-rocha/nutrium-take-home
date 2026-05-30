@@ -63,6 +63,9 @@ curl 'http://localhost:3000/api/v1/nutritionists?location=Porto&q=sport'
 
 # Paginate (page 1-based; per_page default 10, capped at 50)
 curl 'http://localhost:3000/api/v1/nutritionists?location=Braga&page=2&per_page=5'
+
+# "Near me": valid lat+lng sorts nearest→farthest, bypassing the city filter
+curl 'http://localhost:3000/api/v1/nutritionists?lat=41.1579&lng=-8.6291'
 ```
 
 A blank or invalid location falls back to `Braga` ("invalid" = yields zero
@@ -72,6 +75,12 @@ label results ("Showing results for Braga"), plus a `pagination` block:
 ```json
 { "page": 1, "per_page": 10, "total_count": 6, "total_pages": 1 }
 ```
+
+**Distance sort ("near me").** When both `lat` and `lng` are valid, results are
+ordered nearest→farthest by Haversine distance from that point, the city filter
+and Braga default are bypassed (`location` comes back `null`), `sorted_by` is
+`"distance"`, and each card carries `distance_km`. Services without coordinates
+(online/remote) are excluded. Partial/invalid coords fall back to location mode.
 
 ### Create an appointment request
 

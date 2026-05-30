@@ -19,6 +19,14 @@ SERVICE_CATALOG = [
 
 LOCATIONS = [ "Braga", "Porto", "Lisboa", "Guimarães", "Coimbra", "Online" ].freeze
 
+CITY_COORDS = {
+  "Braga"     => [ 41.5454, -8.4265 ],
+  "Porto"     => [ 41.1579, -8.6291 ],
+  "Lisboa"    => [ 38.7223, -9.1393 ],
+  "Guimarães" => [ 41.4425, -8.2918 ],
+  "Coimbra"   => [ 40.2033, -8.4103 ]
+}.freeze
+
 TITLES = [ "Dietitian", "Clinical Nutritionist", "Sports Nutritionist", "Pediatric Nutritionist" ].freeze
 
 NUTRITIONISTS = [
@@ -64,10 +72,13 @@ nutritionists.each_with_index do |nutri, idx|
       else LOCATIONS.rotate(idx + svc_idx).first
       end
 
-    nutri.services.find_or_create_by!(name: svc_attrs[:name], location: location) do |s|
+    svc = nutri.services.find_or_create_by!(name: svc_attrs[:name], location: location) do |s|
       s.price_cents      = svc_attrs[:price_cents]
       s.duration_minutes = svc_attrs[:duration_minutes]
     end
+
+    lat, lng = CITY_COORDS[location]
+    svc.update!(latitude: lat, longitude: lng) if lat && svc.latitude.nil?
   end
 end
 

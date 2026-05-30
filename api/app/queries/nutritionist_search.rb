@@ -2,14 +2,17 @@ class NutritionistSearch
   DEFAULT_LOCATION = "Braga".freeze
   DEFAULT_PER_PAGE = 10
   MAX_PER_PAGE = 50
+  EARTH_RADIUS_KM = 6371.0
 
   attr_reader :q, :page, :per_page
 
-  def initialize(q: nil, location: nil, page: nil, per_page: nil)
+  def initialize(q: nil, location: nil, page: nil, per_page: nil, lat: nil, lng: nil)
     @q = q.to_s.strip.presence
     @requested_location = location.to_s.strip.presence
     @page = normalize_page(page)
     @per_page = normalize_per_page(per_page)
+    @lat = parse_coordinate(lat, 90.0)
+    @lng = parse_coordinate(lng, 180.0)
   end
 
   def results
@@ -20,6 +23,10 @@ class NutritionistSearch
   def location
     compute
     @location
+  end
+
+  def geo?
+    !@lat.nil? && !@lng.nil?
   end
 
   def pagination
@@ -37,14 +44,24 @@ class NutritionistSearch
   def compute
     return if @computed
 
-    @location = resolve_location
-    scope = matching_nutritionists(@location)
-    @total_count = scope.count
-
-    page_records = scope.limit(@per_page).offset((@page - 1) * @per_page).to_a
-    @results = serialize_page(page_records, @location)
+    if geo?
+      @location = nil
+      @total_count = geo_nutritionist_ids.count
+      page_records = geo_relation.limit(@per_page).offset(offset).to_a
+      @results = page_records.map { |n| serialize(n, geo_services_for(n), distance_km: n.distance_km) }
+    else
+      @location = resolve_location
+      relation = matching_nutritionists(@location)
+      @total_count = relation.count
+      page_records = relation.limit(@per_page).offset(offset).to_a
+      @results = serialize_page(page_records, @location)
+    end
 
     @computed = true
+  end
+
+  def offset
+    (@page - 1) * @per_page
   end
 
   def resolve_location
@@ -62,17 +79,7 @@ class NutritionistSearch
   end
 
   def matching_services(location)
-    scope = Service.where("LOWER(location) = LOWER(?)", location)
-    return scope if q.blank?
-
-    pattern = "%#{ActiveRecord::Base.sanitize_sql_like(q.downcase)}%"
-    nutri_ids_by_name = Nutritionist.where("LOWER(name) LIKE ?", pattern).pluck(:id)
-
-    scope.where(
-      "LOWER(services.name) LIKE :pattern OR services.nutritionist_id IN (:ids)",
-      pattern: pattern,
-      ids: nutri_ids_by_name
-    )
+    apply_query(Service.where("LOWER(location) = LOWER(?)", location))
   end
 
   def serialize_page(nutritionists, location)
@@ -84,6 +91,50 @@ class NutritionistSearch
       .group_by(&:nutritionist_id)
 
     nutritionists.map { |n| serialize(n, services_by_nutri[n.id]) }
+  end
+
+  def geo_services
+    apply_query(Service.where.not(latitude: nil, longitude: nil))
+  end
+
+  def geo_nutritionist_ids
+    Nutritionist.where(id: geo_services.select(:nutritionist_id))
+  end
+
+  def geo_relation
+    Nutritionist
+      .joins(:services)
+      .merge(geo_services)
+      .select("nutritionists.*, MIN(#{distance_sql}) AS distance_km")
+      .group("nutritionists.id")
+      .order(Arel.sql("MIN(#{distance_sql}) ASC"), :name, :id)
+  end
+
+  def geo_services_for(nutritionist)
+    geo_services.where(nutritionist_id: nutritionist.id).to_a
+  end
+
+  def distance_sql
+    @distance_sql ||= ActiveRecord::Base.sanitize_sql_array([
+      "#{EARTH_RADIUS_KM} * acos(LEAST(1.0, " \
+      "cos(radians(?)) * cos(radians(services.latitude)) * " \
+      "cos(radians(services.longitude) - radians(?)) + " \
+      "sin(radians(?)) * sin(radians(services.latitude))))",
+      @lat, @lng, @lat
+    ])
+  end
+
+  def apply_query(scope)
+    return scope if q.blank?
+
+    pattern = "%#{ActiveRecord::Base.sanitize_sql_like(q.downcase)}%"
+    nutri_ids_by_name = Nutritionist.where("LOWER(name) LIKE ?", pattern).pluck(:id)
+
+    scope.where(
+      "LOWER(services.name) LIKE :pattern OR services.nutritionist_id IN (:ids)",
+      pattern: pattern,
+      ids: nutri_ids_by_name
+    )
   end
 
   def normalize_page(value)
@@ -98,8 +149,17 @@ class NutritionistSearch
     [ n, MAX_PER_PAGE ].min
   end
 
-  def serialize(nutri, services)
-    {
+  def parse_coordinate(value, limit)
+    return nil if value.nil? || value.to_s.strip.empty?
+
+    f = Float(value, exception: false)
+    return nil if f.nil? || f < -limit || f > limit
+
+    f
+  end
+
+  def serialize(nutri, services, distance_km: nil)
+    card = {
       id: nutri.id,
       name: nutri.name,
       title: nutri.title,
@@ -115,5 +175,7 @@ class NutritionistSearch
         }
       }
     }
+    card[:distance_km] = distance_km.to_f.round(1) unless distance_km.nil?
+    card
   end
 end

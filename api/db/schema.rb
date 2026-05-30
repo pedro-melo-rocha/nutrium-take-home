@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_05_30_120000) do
+ActiveRecord::Schema[7.2].define(version: 2026_05_30_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "btree_gist"
   enable_extension "plpgsql"
@@ -55,6 +55,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_05_30_120000) do
     t.integer "duration_minutes", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "latitude", precision: 9, scale: 6
+    t.decimal "longitude", precision: 9, scale: 6
     t.index ["location"], name: "index_services_on_location"
     t.index ["nutritionist_id"], name: "index_services_on_nutritionist_id"
     t.check_constraint "duration_minutes > 0", name: "duration_minutes_positive"

@@ -82,6 +82,28 @@ RSpec.describe "GET /api/v1/nutritionists", type: :request do
     expect(ana_result["services"].map { |s| s["name"] }).to eq([ "Initial Consultation" ])
   end
 
+  it "sorts by distance and reports sorted_by=distance when lat/lng given" do
+    near = create(:nutritionist, name: "Near Porto")
+    create(:service, nutritionist: near, location: "Porto", latitude: 41.1579, longitude: -8.6291)
+    far = create(:nutritionist, name: "Far Lisboa")
+    create(:service, nutritionist: far, location: "Lisboa", latitude: 38.7223, longitude: -9.1393)
+
+    get "/api/v1/nutritionists", params: { lat: 41.1579, lng: -8.6291 }
+
+    json = response.parsed_body
+    expect(json["sorted_by"]).to eq("distance")
+    expect(json["location"]).to be_nil
+    names = json["results"].map { |r| r["name"] }
+    # Porto-based nutritionist before the Lisboa one; Ana/Bruno (no coords) excluded.
+    expect(names).to eq([ "Near Porto", "Far Lisboa" ])
+    expect(json["results"].first["distance_km"]).to be_within(0.5).of(0.0)
+  end
+
+  it "reports sorted_by=name in location mode" do
+    get "/api/v1/nutritionists", params: { location: "Braga" }
+    expect(response.parsed_body["sorted_by"]).to eq("name")
+  end
+
   it "returns a pagination block with sensible defaults" do
     get "/api/v1/nutritionists", params: { location: "Braga" }
 

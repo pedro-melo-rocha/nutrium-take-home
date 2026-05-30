@@ -61,7 +61,7 @@ RSpec.describe AppointmentRequests::Accept do
 
     it "treats a touching slot (ends_at == next.starts_at) as NON-overlapping (tstzrange [) semantics)" do
       start_a = 2.days.from_now.change(hour: 10)
-      target  = make_request(starts_at: start_a)         
+      target  = make_request(starts_at: start_a)
       touching = make_request(starts_at: target.ends_at)
 
       result = described_class.new.call(target)

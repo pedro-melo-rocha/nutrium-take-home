@@ -1,6 +1,6 @@
 class ApplicationController < ActionController::API
   private
-  
+
   def render_error(result)
     status =
       case result.error_code

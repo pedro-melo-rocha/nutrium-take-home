@@ -126,6 +126,90 @@ RSpec.describe NutritionistSearch do
     end
   end
 
+  describe "geo / near-me distance sort" do
+    let(:porto_lat) { 41.1579 }
+    let(:porto_lng) { -8.6291 }
+
+    let!(:porto_nutri) do
+      n = create(:nutritionist, name: "Zacarias Porto")
+      create(:service, nutritionist: n, name: "Sports Nutrition", location: "Porto", latitude: 41.1579, longitude: -8.6291)
+      n
+    end
+    let!(:braga_nutri) do
+      n = create(:nutritionist, name: "Mariana Braga")
+      create(:service, nutritionist: n, name: "Weight Management", location: "Braga", latitude: 41.5454, longitude: -8.4265)
+      n
+    end
+    let!(:lisboa_nutri) do
+      n = create(:nutritionist, name: "Alberto Lisboa")
+      create(:service, nutritionist: n, name: "Diabetes Counseling", location: "Lisboa", latitude: 38.7223, longitude: -9.1393)
+      n
+    end
+    let!(:online_nutri) do
+      n = create(:nutritionist, name: "Remoto Online")
+      create(:service, nutritionist: n, name: "Online Follow-up", location: "Online")
+      n
+    end
+
+    def geo_search(**opts)
+      described_class.new(lat: porto_lat, lng: porto_lng, **opts)
+    end
+
+    it "activates geo mode only when both lat and lng are valid" do
+      expect(described_class.new(lat: "41.1", lng: "-8.6").geo?).to be(true)
+      expect(described_class.new(lat: "41.1").geo?).to be(false)          
+      expect(described_class.new(lat: "abc", lng: "-8.6").geo?).to be(false)
+      expect(described_class.new(lat: "999", lng: "-8.6").geo?).to be(false)
+      expect(described_class.new(location: "Braga").geo?).to be(false)
+    end
+
+    it "orders nearest → farthest from the reference point" do
+      names = geo_search.results.map { |r| r[:name] }
+      expect(names).to eq([ "Zacarias Porto", "Mariana Braga", "Alberto Lisboa" ])
+    end
+
+    it "attaches an ascending distance_km to each card" do
+      distances = geo_search.results.map { |r| r[:distance_km] }
+      expect(distances).to eq(distances.sort)
+      expect(distances.first).to be_within(0.5).of(0.0) # at Porto
+      expect(geo_search.results).to all(include(:distance_km))
+    end
+
+    it "excludes services without coordinates (online/remote)" do
+      names = geo_search.results.map { |r| r[:name] }
+      expect(names).not_to include("Remoto Online")
+    end
+
+    it "reports location as nil (no city in geo mode)" do
+      expect(geo_search.location).to be_nil
+    end
+
+    it "ignores the city filter and Braga default" do
+      names = geo_search(location: "Lisboa").results.map { |r| r[:name] }
+      expect(names).to contain_exactly("Zacarias Porto", "Mariana Braga", "Alberto Lisboa")
+    end
+
+    it "still applies the q filter" do
+      results = geo_search(q: "weight").results
+      expect(results.map { |r| r[:name] }).to eq([ "Mariana Braga" ])
+    end
+
+    it "paginates the distance-ordered set" do
+      page1 = geo_search(per_page: 2, page: 1).results.map { |r| r[:name] }
+      page2 = geo_search(per_page: 2, page: 2).results.map { |r| r[:name] }
+
+      expect(page1).to eq([ "Zacarias Porto", "Mariana Braga" ])
+      expect(page2).to eq([ "Alberto Lisboa" ])
+      expect(geo_search(per_page: 2).pagination).to eq(page: 1, per_page: 2, total_count: 3, total_pages: 2)
+    end
+
+    it "falls back to location mode when coordinates are partial/invalid" do
+      search = described_class.new(location: "Braga", lat: "41.1") # no lng
+      expect(search.geo?).to be(false)
+      expect(search.location).to eq("Braga")
+    end
+  end
+
   describe "pagination" do
     let!(:paged) do
       %w[P1 P2 P3 P4 P5].map do |label|
