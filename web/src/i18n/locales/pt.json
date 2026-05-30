@@ -1,0 +1,99 @@
+{
+  "common": {
+    "search": "Pesquisar",
+    "loading": "A carregar…",
+    "done": "Concluído",
+    "close": "Fechar",
+    "backToSearch": "← Voltar à pesquisa"
+  },
+  "header": {
+    "professionalLink": "É profissional de nutrição?"
+  },
+  "searchBar": {
+    "queryPlaceholder": "Nome, serviço, consulta online…",
+    "queryAria": "Pesquisar por nome ou serviço",
+    "locationPlaceholder": "Localização",
+    "locationAria": "Localização",
+    "nearMe": "Perto de mim",
+    "useLocation": "Usar a minha localização",
+    "clearLocation": "Limpar localização"
+  },
+  "results": {
+    "searching": "A pesquisar…",
+    "found_one": "{{count}} nutricionista",
+    "found_other": "{{count}} nutricionistas",
+    "foundIn_one": "{{count}} nutricionista em {{location}}",
+    "foundIn_other": "{{count}} nutricionistas em {{location}}",
+    "foundNearest_one": "{{count}} nutricionista · mais perto primeiro",
+    "foundNearest_other": "{{count}} nutricionistas · mais perto primeiro"
+  },
+  "card": {
+    "followUp": "Seguimento",
+    "schedule": "Marcar consulta",
+    "personalPage": "Página pessoal",
+    "personalPageTitle": "Página pessoal (brevemente)"
+  },
+  "modal": {
+    "scheduleTitle": "Marcar consulta",
+    "sentTitle": "Pedido enviado",
+    "with": "com {{name}}",
+    "service": "Serviço",
+    "name": "O seu nome",
+    "namePlaceholder": "Maria Silva",
+    "email": "Email",
+    "emailPlaceholder": "maria@exemplo.com",
+    "dateTime": "Data e hora",
+    "supersedeNote": "Ao enviar, substitui qualquer pedido pendente anterior associado a este email.",
+    "genericError": "Algo correu mal. Tente novamente.",
+    "submit": "Pedir consulta",
+    "confirmationPending": "O seu pedido está pendente",
+    "confirmationEmailNote": "Enviaremos um email para {{email}} assim que o nutricionista aceitar ou rejeitar."
+  },
+  "search": {
+    "errorTitle": "Não foi possível carregar os nutricionistas",
+    "errorBody": "Confirme que a API está a correr e tente novamente.",
+    "emptyTitle": "Nenhum nutricionista encontrado",
+    "emptyBody": "Experimente outro nome, serviço ou localização."
+  },
+  "queue": {
+    "signedInAs": "Sessão iniciada como {{name}}",
+    "switchAccount": "Mudar de conta",
+    "title": "Pedidos de consulta",
+    "subtitle": "Aceite ou rejeite os pedidos recebidos. Os clientes são notificados por email.",
+    "errorTitle": "Não foi possível carregar os pedidos",
+    "errorBody": "Confirme que a API está a correr e tente novamente.",
+    "updateError": "Não foi possível atualizar este pedido.",
+    "emptyTitle": "Sem pedidos {{status}}",
+    "emptyPendingBody": "Os novos pedidos de consulta aparecerão aqui.",
+    "emptyOtherBody": "Ainda não tem pedidos {{status}}."
+  },
+  "request": {
+    "accept": "Aceitar",
+    "reject": "Rejeitar"
+  },
+  "status": {
+    "pending": "pendentes",
+    "accepted": "aceites",
+    "rejected": "rejeitados"
+  },
+  "statusLabel": {
+    "pending": "Pendentes",
+    "accepted": "Aceites",
+    "rejected": "Rejeitados"
+  },
+  "picker": {
+    "title": "Acesso profissional",
+    "subtitle": "Selecione o seu perfil para rever e responder aos pedidos de consulta.",
+    "nutritionist": "Nutricionista",
+    "loadError": "Não foi possível carregar os nutricionistas. A API está a correr?",
+    "choosePlaceholder": "Escolha um perfil…",
+    "viewRequests": "Ver pedidos",
+    "bragaNotePrefix": "A mostrar profissionais de Braga. Para aceder à fila de outra cidade, abra",
+    "bragaNoteSuffix": "diretamente."
+  },
+  "language": {
+    "label": "Idioma",
+    "en": "EN",
+    "pt": "PT"
+  }
+}

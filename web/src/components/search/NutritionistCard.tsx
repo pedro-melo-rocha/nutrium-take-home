@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { formatDistance, formatDuration, formatPrice } from '../../lib/format'
 import type { NutritionistCard as Nutritionist, Service } from '../../lib/types'
 import {
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function NutritionistCard({ nutritionist, onSchedule }: Props) {
+  const { t } = useTranslation()
   const { name, title, license_number, photo_url, services, distance_km } =
     nutritionist
   const primaryLocation = services[0]?.location
@@ -26,7 +28,7 @@ export function NutritionistCard({ nutritionist, onSchedule }: Props) {
         <div className="min-w-0">
           <span className="inline-flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-brand-600">
             <StarIcon className="size-3.5" />
-            Follow-up
+            {t('card.followUp')}
           </span>
           <h3 className="truncate text-lg font-semibold text-brand-700">
             {name}
@@ -62,14 +64,14 @@ export function NutritionistCard({ nutritionist, onSchedule }: Props) {
           onClick={() => onSchedule(nutritionist)}
           className="rounded-lg bg-coral-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-coral-600 active:scale-[0.98]"
         >
-          Schedule appointment
+          {t('card.schedule')}
         </button>
         <button
           type="button"
-          title="Personal page (coming soon)"
+          title={t('card.personalPageTitle')}
           className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-brand-500 px-4 py-2.5 text-sm font-semibold text-brand-600 transition hover:bg-brand-50"
         >
-          Personal page
+          {t('card.personalPage')}
           <ArrowRightIcon className="size-4" />
         </button>
       </div>

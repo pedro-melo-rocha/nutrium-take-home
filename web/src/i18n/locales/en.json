@@ -1,0 +1,99 @@
+{
+  "common": {
+    "search": "Search",
+    "loading": "Loading…",
+    "done": "Done",
+    "close": "Close",
+    "backToSearch": "← Back to search"
+  },
+  "header": {
+    "professionalLink": "Are you a nutrition professional?"
+  },
+  "searchBar": {
+    "queryPlaceholder": "Name, service, online appointment…",
+    "queryAria": "Search by name or service",
+    "locationPlaceholder": "Location",
+    "locationAria": "Location",
+    "nearMe": "Near me",
+    "useLocation": "Use my location",
+    "clearLocation": "Clear location"
+  },
+  "results": {
+    "searching": "Searching…",
+    "found_one": "{{count}} nutritionist",
+    "found_other": "{{count}} nutritionists",
+    "foundIn_one": "{{count}} nutritionist in {{location}}",
+    "foundIn_other": "{{count}} nutritionists in {{location}}",
+    "foundNearest_one": "{{count}} nutritionist · nearest first",
+    "foundNearest_other": "{{count}} nutritionists · nearest first"
+  },
+  "card": {
+    "followUp": "Follow-up",
+    "schedule": "Schedule appointment",
+    "personalPage": "Personal page",
+    "personalPageTitle": "Personal page (coming soon)"
+  },
+  "modal": {
+    "scheduleTitle": "Schedule appointment",
+    "sentTitle": "Request sent",
+    "with": "with {{name}}",
+    "service": "Service",
+    "name": "Your name",
+    "namePlaceholder": "Jane Doe",
+    "email": "Email",
+    "emailPlaceholder": "jane@example.com",
+    "dateTime": "Date & time",
+    "supersedeNote": "Submitting replaces any earlier pending request tied to this email.",
+    "genericError": "Something went wrong. Please try again.",
+    "submit": "Request appointment",
+    "confirmationPending": "Your request is pending",
+    "confirmationEmailNote": "We'll email {{email}} as soon as the nutritionist accepts or rejects it."
+  },
+  "search": {
+    "errorTitle": "Couldn't load nutritionists",
+    "errorBody": "Check that the API is running, then try again.",
+    "emptyTitle": "No nutritionists found",
+    "emptyBody": "Try a different name, service, or location."
+  },
+  "queue": {
+    "signedInAs": "Signed in as {{name}}",
+    "switchAccount": "Switch account",
+    "title": "Appointment requests",
+    "subtitle": "Accept or reject incoming requests. Guests are notified by email.",
+    "errorTitle": "Couldn't load requests",
+    "errorBody": "Check that the API is running, then try again.",
+    "updateError": "Could not update this request.",
+    "emptyTitle": "No {{status}} requests",
+    "emptyPendingBody": "New appointment requests will appear here.",
+    "emptyOtherBody": "You have no {{status}} requests yet."
+  },
+  "request": {
+    "accept": "Accept",
+    "reject": "Reject"
+  },
+  "status": {
+    "pending": "pending",
+    "accepted": "accepted",
+    "rejected": "rejected"
+  },
+  "statusLabel": {
+    "pending": "Pending",
+    "accepted": "Accepted",
+    "rejected": "Rejected"
+  },
+  "picker": {
+    "title": "Professional access",
+    "subtitle": "Select your profile to review and answer appointment requests.",
+    "nutritionist": "Nutritionist",
+    "loadError": "Couldn't load nutritionists. Is the API running?",
+    "choosePlaceholder": "Choose a profile…",
+    "viewRequests": "View requests",
+    "bragaNotePrefix": "Showing Braga professionals. To reach another city's queue, open",
+    "bragaNoteSuffix": "directly."
+  },
+  "language": {
+    "label": "Language",
+    "en": "EN",
+    "pt": "PT"
+  }
+}

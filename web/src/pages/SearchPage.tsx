@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useNutritionistSearch, type SearchParams } from '../api/nutritionists'
+import { LanguageToggle } from '../components/LanguageToggle'
 import { Logo } from '../components/Logo'
 import { Spinner } from '../components/Spinner'
 import { ArrowRightIcon } from '../components/icons'
@@ -12,6 +14,7 @@ import { useGeolocation } from '../lib/useGeolocation'
 import type { NutritionistCard as Nutritionist } from '../lib/types'
 
 export default function SearchPage() {
+  const { t } = useTranslation()
   const [sp, setSp] = useSearchParams()
   const geo = useGeolocation()
   const [selected, setSelected] = useState<Nutritionist | null>(null)
@@ -60,13 +63,16 @@ export default function SearchPage() {
         <div className="mx-auto max-w-5xl px-4 py-4">
           <div className="mb-4 flex items-center justify-between text-white">
             <Logo className="text-white" />
-            <Link
-              to="/nutritionists/1/requests"
-              className="hidden items-center gap-1.5 text-sm font-medium text-white/90 transition hover:text-white sm:inline-flex"
-            >
-              Are you a nutrition professional?
-              <ArrowRightIcon className="size-4" />
-            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/professional"
+                className="hidden items-center gap-1.5 text-sm font-medium text-white/90 transition hover:text-white sm:inline-flex"
+              >
+                {t('header.professionalLink')}
+                <ArrowRightIcon className="size-4" />
+              </Link>
+              <LanguageToggle variant="light" />
+            </div>
           </div>
           <SearchBar
             key={`${q}|${location}|${geo.coords ? 'geo' : 'loc'}`}
@@ -97,8 +103,8 @@ export default function SearchPage() {
           <SkeletonList />
         ) : isError ? (
           <EmptyState
-            title="Couldn't load nutritionists"
-            body="Check that the API is running, then try again."
+            title={t('search.errorTitle')}
+            body={t('search.errorBody')}
           />
         ) : data && data.results.length > 0 ? (
           <>
@@ -121,8 +127,8 @@ export default function SearchPage() {
           </>
         ) : (
           <EmptyState
-            title="No nutritionists found"
-            body="Try a different name, service, or location."
+            title={t('search.emptyTitle')}
+            body={t('search.emptyBody')}
           />
         )}
       </main>
@@ -150,15 +156,19 @@ function ResultsHeader({
   location: string | null
   sortedBy?: 'name' | 'distance'
 }) {
+  const { t } = useTranslation()
+  const count = total ?? 0
+
+  function label() {
+    if (loading) return t('results.searching')
+    if (sortedBy === 'distance') return t('results.foundNearest', { count })
+    if (location) return t('results.foundIn', { count, location })
+    return t('results.found', { count })
+  }
+
   return (
     <div className="mb-4 flex items-center gap-2">
-      <h1 className="text-sm text-slate-500">
-        {loading
-          ? 'Searching…'
-          : sortedBy === 'distance'
-            ? `${total} nutritionists · nearest first`
-            : `${total} nutritionists${location ? ` in ${location}` : ''}`}
-      </h1>
+      <h1 className="text-sm text-slate-500">{label()}</h1>
       {fetching && !loading && <Spinner className="size-4 text-brand-500" />}
     </div>
   )

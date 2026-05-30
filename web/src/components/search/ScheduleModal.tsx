@@ -5,6 +5,7 @@ import {
   type FormEvent,
   type ReactNode,
 } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useCreateAppointment } from '../../api/appointments'
 import { ApiError } from '../../lib/api'
 import { formatDuration, formatPrice } from '../../lib/format'
@@ -32,6 +33,7 @@ function toLocalInput(d: Date): string {
 }
 
 export function ScheduleModal({ nutritionist, onClose }: Props) {
+  const { t } = useTranslation()
   const titleId = useId()
   const create = useCreateAppointment()
 
@@ -80,14 +82,16 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
         <header className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
           <div>
             <h2 id={titleId} className="text-lg font-semibold text-slate-800">
-              {succeeded ? 'Request sent' : 'Schedule appointment'}
+              {succeeded ? t('modal.sentTitle') : t('modal.scheduleTitle')}
             </h2>
-            <p className="text-sm text-slate-500">with {nutritionist.name}</p>
+            <p className="text-sm text-slate-500">
+              {t('modal.with', { name: nutritionist.name })}
+            </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('common.close')}
             className="grid size-8 place-items-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
           >
             <CloseIcon className="size-5" />
@@ -100,7 +104,7 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-5">
             <fieldset className="flex flex-col gap-2">
               <legend className="mb-1 text-sm font-medium text-slate-700">
-                Service
+                {t('modal.service')}
               </legend>
               {nutritionist.services.map((s) => (
                 <label
@@ -130,29 +134,29 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
               ))}
             </fieldset>
 
-            <Field label="Your name">
+            <Field label={t('modal.name')}>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Jane Doe"
+                placeholder={t('modal.namePlaceholder')}
                 className="input"
               />
             </Field>
 
-            <Field label="Email">
+            <Field label={t('modal.email')}>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="jane@example.com"
+                placeholder={t('modal.emailPlaceholder')}
                 className="input"
               />
             </Field>
 
-            <Field label="Date & time">
+            <Field label={t('modal.dateTime')}>
               <div className="relative">
                 <CalendarIcon className="pointer-events-none absolute left-3 top-1/2 size-5 -translate-y-1/2 text-slate-400" />
                 <input
@@ -167,14 +171,14 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
             </Field>
 
             <p className="text-xs text-slate-400">
-              Submitting replaces any earlier pending request tied to this email.
+              {t('modal.supersedeNote')}
             </p>
 
             {create.isError && (
               <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
                 {create.error instanceof ApiError
                   ? create.error.message
-                  : 'Something went wrong. Please try again.'}
+                  : t('modal.genericError')}
               </p>
             )}
 
@@ -184,7 +188,7 @@ export function ScheduleModal({ nutritionist, onClose }: Props) {
               className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg bg-coral-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-coral-600 disabled:opacity-60"
             >
               {create.isPending && <Spinner className="size-4" />}
-              Request appointment
+              {t('modal.submit')}
             </button>
           </form>
         )}
@@ -215,24 +219,24 @@ function Confirmation({
   email: string
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col items-center gap-3 p-8 text-center">
       <div className="grid size-14 place-items-center rounded-full bg-brand-100 text-brand-600">
         <CheckIcon className="size-7" />
       </div>
       <p className="text-base font-medium text-slate-800">
-        Your request is pending
+        {t('modal.confirmationPending')}
       </p>
       <p className="max-w-sm text-sm text-slate-500">
-        We'll email <span className="font-medium">{email}</span> as soon as the
-        nutritionist accepts or rejects it.
+        {t('modal.confirmationEmailNote', { email })}
       </p>
       <button
         type="button"
         onClick={onClose}
         className="mt-2 rounded-lg bg-brand-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600"
       >
-        Done
+        {t('common.done')}
       </button>
     </div>
   )

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { CrosshairIcon, PinIcon, SearchIcon } from '../icons'
 import { Spinner } from '../Spinner'
 
@@ -12,8 +13,6 @@ export interface SearchBarProps {
   onClearLocation: () => void
 }
 
-// The parent remounts this via `key` when URL-driven params change, so local
-// input state always starts from the latest values — no sync effect needed.
 export function SearchBar({
   initialQuery,
   initialLocation,
@@ -23,6 +22,7 @@ export function SearchBar({
   onUseLocation,
   onClearLocation,
 }: SearchBarProps) {
+  const { t } = useTranslation()
   const [q, setQ] = useState(initialQuery)
   const [location, setLocation] = useState(initialLocation)
 
@@ -52,8 +52,8 @@ export function SearchBar({
           type="text"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Name, service, online appointment…"
-          aria-label="Search by name or service"
+          placeholder={t('searchBar.queryPlaceholder')}
+          aria-label={t('searchBar.queryAria')}
           className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
         />
       </div>
@@ -64,15 +64,15 @@ export function SearchBar({
           type="text"
           value={location}
           onChange={(e) => handleLocationChange(e.target.value)}
-          placeholder={geoActive ? 'Near me' : 'Location'}
-          aria-label="Location"
+          placeholder={geoActive ? t('searchBar.nearMe') : t('searchBar.locationPlaceholder')}
+          aria-label={t('searchBar.locationAria')}
           disabled={geoActive}
           className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400 disabled:text-brand-600"
         />
         <button
           type="button"
           onClick={handleGeoButton}
-          title={geoActive ? 'Clear location' : 'Use my location'}
+          title={geoActive ? t('searchBar.clearLocation') : t('searchBar.useLocation')}
           aria-pressed={geoActive}
           className={`grid size-7 shrink-0 place-items-center rounded-full transition ${
             geoActive
@@ -92,7 +92,7 @@ export function SearchBar({
         type="submit"
         className="rounded-lg bg-coral-500 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-coral-600 active:scale-[0.98]"
       >
-        Search
+        {t('common.search')}
       </button>
     </form>
   )
