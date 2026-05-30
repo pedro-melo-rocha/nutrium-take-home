@@ -25,7 +25,10 @@
     "foundIn_one": "{{count}} nutricionista em {{location}}",
     "foundIn_other": "{{count}} nutricionistas em {{location}}",
     "foundNearest_one": "{{count}} nutricionista · mais perto primeiro",
-    "foundNearest_other": "{{count}} nutricionistas · mais perto primeiro"
+    "foundNearest_other": "{{count}} nutricionistas · mais perto primeiro",
+    "fallbackNotice": "Sem resultados para “{{query}}”",
+    "fallbackShowing_one": "A mostrar {{count}} nutricionista em {{location}}",
+    "fallbackShowing_other": "A mostrar {{count}} nutricionistas em {{location}}"
   },
   "card": {
     "followUp": "Seguimento",

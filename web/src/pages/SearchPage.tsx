@@ -98,6 +98,7 @@ export default function SearchPage() {
           fetching={isFetching}
           total={data?.pagination.total_count}
           location={data?.location ?? null}
+          requested={location}
           sortedBy={data?.sorted_by}
         />
 
@@ -150,16 +151,41 @@ function ResultsHeader({
   fetching,
   total,
   location,
+  requested,
   sortedBy,
 }: {
   loading: boolean
   fetching: boolean
   total?: number
   location: string | null
+  requested: string
   sortedBy?: 'name' | 'distance'
 }) {
   const { t } = useTranslation()
   const count = total ?? 0
+  const typed = requested.trim()
+  const fellBack =
+    !loading &&
+    sortedBy !== 'distance' &&
+    !!location &&
+    typed.length > 0 &&
+    typed.toLowerCase() !== location.toLowerCase()
+
+  if (fellBack) {
+    return (
+      <div className="mb-4 flex items-start gap-2">
+        <div>
+          <p className="text-sm font-medium text-slate-700">
+            {t('results.fallbackNotice', { query: typed })}
+          </p>
+          <p className="text-sm text-slate-500">
+            {t('results.fallbackShowing', { count, location })}
+          </p>
+        </div>
+        {fetching && <Spinner className="mt-0.5 size-4 text-brand-500" />}
+      </div>
+    )
+  }
 
   function label() {
     if (loading) return t('results.searching')

@@ -25,7 +25,10 @@
     "foundIn_one": "{{count}} nutritionist in {{location}}",
     "foundIn_other": "{{count}} nutritionists in {{location}}",
     "foundNearest_one": "{{count}} nutritionist · nearest first",
-    "foundNearest_other": "{{count}} nutritionists · nearest first"
+    "foundNearest_other": "{{count}} nutritionists · nearest first",
+    "fallbackNotice": "No results for “{{query}}”",
+    "fallbackShowing_one": "Showing {{count}} nutritionist in {{location}} instead",
+    "fallbackShowing_other": "Showing {{count}} nutritionists in {{location}} instead"
   },
   "card": {
     "followUp": "Follow-up",
