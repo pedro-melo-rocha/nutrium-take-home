@@ -13,6 +13,8 @@ import { ScheduleModal } from '../components/search/ScheduleModal'
 import { useGeolocation } from '../lib/useGeolocation'
 import type { NutritionistCard as Nutritionist } from '../lib/types'
 
+const PER_PAGE = 5
+
 export default function SearchPage() {
   const { t } = useTranslation()
   const [sp, setSp] = useSearchParams()
@@ -24,8 +26,8 @@ export default function SearchPage() {
   const page = Math.max(1, Number(sp.get('page') ?? '1'))
 
   const params: SearchParams = geo.coords
-    ? { q, page, lat: geo.coords.lat, lng: geo.coords.lng }
-    : { q, location, page }
+    ? { q, page, per_page: PER_PAGE, lat: geo.coords.lat, lng: geo.coords.lng }
+    : { q, location, page, per_page: PER_PAGE }
 
   const { data, isLoading, isError, isFetching } = useNutritionistSearch(params)
 
